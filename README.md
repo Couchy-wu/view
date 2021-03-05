@@ -438,6 +438,7 @@
 
 ##### 2.底层原理
 - [ ] goroutine(协程)和线程是什么关系，goroutine是如何调度的？
+- 
 1、goroutine 和thead 之间的区别
 概念上：
      1.Goroutines 在同一个用户地址空间里并行独立执行 functions；
