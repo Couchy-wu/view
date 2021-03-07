@@ -266,10 +266,31 @@
 ##### 2.使用场景
 
 - [ ] 分布式锁
+
+  实现:
+
+  ​	 单节点：`SET resource_name my_random_value NX PX 30000`
+
+  ​     <!--该命令仅当 Key 不存在时（NX保证）set 值，并且设置过期时间 3000ms （PX保证），值 my_random_value 必须是所有 client 和所有锁请求发生期间唯一的-->
+
+  分布式锁可能遇到问题：
+
+  1、
+
+  
+
 - [ ] 缓存雪崩、缓存击穿、缓存穿透
-- [ ] reids的大key、热key的处理
+
+- [ ] 
+
+- [ ] reids的大key
+
+- [ ] 热key的处理
+
 - [ ] redis大key会有什么问题，如何解决
+
 - [ ] redis超时是什么引起的
+
 - [ ] redis缓存穿透,缓存雪崩
 
 
@@ -509,7 +530,7 @@
 - [ ] map 底层实现&sync.Map的区别
 
    	1. 原理参考：https://tonybai.com/2020/11/10/understand-sync-map-inside-through-examples/
-       源码解析: https://github.com/cch123/golang-notes/blob/master/sync.md
+   	源码解析: https://github.com/cch123/golang-notes/blob/master/sync.md
 
 - [ ] golang 的map 插入顺序和输出顺序是一样的吗？
 
@@ -522,7 +543,7 @@
 - [ ] go内存泄漏
 
    	1. 内存泄漏场景： https://gfw.go101.org/article/memory-leaking.html 
-       有兴趣可以看下这个： https://xargin.com/logic-of-slice-memory-leak/
+   	有兴趣可以看下这个： https://xargin.com/logic-of-slice-memory-leak/
 
 - [ ] 内存对齐，说说为什么要内存对齐，原理原因
 
@@ -532,10 +553,10 @@
 
    	1. 实现： https://github.com/yifhao/share/blob/master/gopher%20meetup-%E6%B7%B1%E5%85%A5%E6%B5%85%E5%87%BAGolang%20Runtime-yifhao-%E5%AE%8C%E6%95%B4%E7%89%88.pdf
    	2. 触发：
-        	1. 主动触发 通过调用 runtime.GC 来触发 GC，此调用阻塞式地等待当前 GC 运行完毕；
-        	2. 被动触发，分为两种方式：
-            使用系统监控，当超过两分钟没有产生任何 GC 时，强制触发 GC。
-            使用步调（Pacing）算法，其核心思想是控制内存增长的比例。
+   	 	1. 主动触发 通过调用 runtime.GC 来触发 GC，此调用阻塞式地等待当前 GC 运行完毕；
+   	 	2. 被动触发，分为两种方式：
+   	     使用系统监控，当超过两分钟没有产生任何 GC 时，强制触发 GC。
+   	     使用步调（Pacing）算法，其核心思想是控制内存增长的比例。
 
 - [ ] interface 底层实现，怎么判空？
 
