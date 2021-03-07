@@ -404,13 +404,15 @@
 
 - [ ] 缓存雪崩
 
-  概念：规模的缓存失效情况的发生。 造成原因缓存服务宕机， 大量key 同时过期
+  概念
 
-  解决方案：
+  > 规模的缓存失效情况的发生。 造成原因缓存服务宕机， 大量key 同时过期
 
-  针对 缓存服务宕机的情况，只能采用增加副本情况，提高缓存稳定；针对key 同时过期，相对简单timeout+random()
+  解决方案
 
-  如果出现缓存雪崩，主要应对方案服务治理，限流，资源隔离，熔断，降级。(详细点后面补充)
+  > 针对 缓存服务宕机的情况，只能采用增加副本情况，提高缓存稳定；针对key 同时过期，相对简单timeout+random()
+  >
+  > 如果出现缓存雪崩，主要应对方案服务治理，限流，资源隔离，熔断，降级。(详细点后面补充)
 
 - [ ] 缓存击穿
 
@@ -593,21 +595,241 @@
 ##### 3.架构
 
 - [ ] redis是单线程的吗
+
+  Redis在6.0推出了多线程，可以在高并发场景下利用CPU多核多线程读写客户端数据，进一步提升server性能，当然，只是针对客户端的读写是并行的，每个命令的真正操作依旧是单线程的。
+
+  **主要目的** 解决并发量非常大时，单线程读写客户端IO数据存在性能瓶颈，虽然采用IO多路复用机制，但是读写客户端数据依旧是同步IO，只能单线程依次读取客户端的数据，无法利用到CPU多核。
+
 - [ ] redis底层网络原理
+
+  别问，问就是reactor
+
 - [ ] redis为什么速度比较快
+
+  > 1.Redis 大部分操作是在内存上完成，并且采用了高效的数据结构如哈希表和跳表
+  >
+  > 2.Redis 采用多路复用，能保证在网络 IO 中可以并发处理大量的客户端请求，实现高吞吐率
+
 - [ ] redis的发布/订阅的原理
+
+  命令
+
+  ```
+  SUBSCRIBE first second   //订阅 first, second 两个topic
+  ```
+
+  ```
+   PUBLISH second Hello    //往topic second 写数据
+  ```
+
+  原理
+
+  ![digraph pubsub {      rankdir = LR;      node [shape = record, style = filled];      edge [style = bold];      // keys      pubsub [label = "pubsub_channels |<channel1> channel1 |<channel2> channel2 |<channel3> channel3 | ... |<channelN> channelN", fillcolor = "#A8E270"];      // clients blocking for channel1     client1 [label = "client1", fillcolor = "#95BBE3"];     client5 [label = "client5", fillcolor = "#95BBE3"];     client2 [label = "client2", fillcolor = "#95BBE3"];     null_1 [label = "NULL", shape = plaintext];          pubsub:channel1 -> client2;     client2 -> client5;     client5 -> client1;     client1 -> null_1;      // clients blocking for channel2     client7 [label = "client7", fillcolor = "#95BBE3"];     null_2 [label = "NULL", shape = plaintext];      pubsub:channel2 -> client7;     client7 -> null_2;      // channel      client3 [label = "client3", fillcolor = "#95BBE3"];     client4 [label = "client4", fillcolor = "#95BBE3"];     client6 [label = "client6", fillcolor = "#95BBE3"];     null_3 [label = "NULL", shape = plaintext];      pubsub:channel3 -> client3;     client3 -> client4;     client4 -> client6;     client6 -> null_3; }](https://redisbook.readthedocs.io/en/latest/_images/graphviz-241c988b86bb9bed6bf26537e654baaab4eef77b.svg)
+
+  
+
 - [ ] 数据缓存过期策略
+
+  > 在设置了过期时间的数据中进行淘汰，包括 volatile-random、volatile-ttl、volatile-lru、volatile-lfu（Redis 4.0 后新增）四种。
+  >
+  > 在所有数据范围内进行淘汰，包括 allkeys-lru、allkeys-random、allkeys-lfu（Redis 4.0 后新增）三种。
+  >
+  > volatile-ttl 在筛选时，会针对设置了过期时间的键值对，根据过期时间的先后进行删除，越早过期的越先被删除。
+  >
+  > volatile-random 就像它的名称一样，在设置了过期时间的键值对中，进行随机删除。
+  >
+  > volatile-lru 会使用 LRU 算法筛选设置了过期时间的键值对。
+  >
+  > volatile-lfu 会使用 LFU 算法选择设置了过期时间的键值对。
+
 - [ ] redis内存淘汰策略（说说 redis 中到期删除是怎么实现的）
+
+  ###### 定时删除
+
+  ​		在设置某个key 的过期时间同时，我们创建一个定时器，让定时器在该过期时间到来时，立即执行对其进行删除的操作。
+
+  ​		优点：定时删除对内存是最友好的，能够保存内存的key一旦过期就能立即从内存中删除。
+
+  ​		缺点：对CPU最不友好，在过期键比较多的时候，删除过期键会占用一部分 CPU 时间，对服务器的响应时间和吞吐量造成影响。
+
+  ###### 惰性删除
+
+  ​		设置该key 过期时间后，我们不去管它，当需要该key时，我们在检查其是否过期，如果过期，我们就删掉它，反之返回该key。
+
+  　　优点：对 CPU友好，我们只会在使用该键时才会进行过期检查，对于很多用不到的key不用浪费时间进行过期检查。
+
+  　　缺点：对内存不友好，如果一个键已经过期，但是一直没有使用，那么该键就会一直存在内存中，如果数据库中有很多这种使用不到的过期键，这些键便					永远不会被删除，内存永远不会释放。从而造成内存泄漏。
+
+  ###### 定期删除
+
+  ​		每隔一段时间，我们就对一些key进行检查，删除里面过期的key。
+
+  　　优点：可以通过限制删除操作执行的时长和频率来减少删除操作对 CPU 的影响。另外定期删除，也能有效释放过期键占用的内存。
+
+  　　缺点：难以确定删除操作执行的时长和频率。
+
+  　　　　　如果执行的太频繁，定期删除策略变得和定时删除策略一样，对CPU不友好。
+
+  　　　　　如果执行的太少，那又和惰性删除一样了，过期键占用的内存不会及时得到释放。
+
+  　　　　　另外最重要的是，在获取某个键时，如果某个键的过期时间已经到了，但是还没执行定期删除，那么就会返回这个键的值，这是业务不能忍受的错					误。
+
 - [ ] redis 的删除策略。定时 定期 惰性 lru(LRU高频)
+
+  同上
+
 - [ ] 持久化策略及其对比:RDB和AOF区别，AOF重写（如果数据量比较大都可能会造成redis 抖动）
+
+  ##### AOF
+
+  ###### 开启AOF
+
+  Redis服务器默认开启RDB，关闭AOF；要开启AOF，需要在配置文件中配置：
+
+  ```
+  appendonly yes
+  ```
+
+  ###### 执行流程
+
+  - 命令追加(append)：将Redis的写命令追加到缓冲区aof_buf；
+  - 文件写入(write)和文件同步(sync)：根据不同的同步策略将aof_buf中的内容同步到硬盘；
+  - 文件重写(rewrite)：定期重写AOF文件，达到压缩的目的。
+
+  注意：
+
+  >  AOF 采用写后日志。
+  >
+  > 优势
+  >
+  >  1、可以避免对当前指令的阻塞;
+  >
+  > 2、可以避免出现记录错误日志。
+  >
+  > 劣势
+  >
+  > 1、 可能会对之后的指令造成阻塞；
+  >
+  > 2、 当未及时记录日志丢失数据
+
+  ###### 三种回写策略 
+
+  ![img](C:\Users\adslen\AppData\Local\YNote\data\799398018@qq.com\daef4d3aba324411912810a8ec99ee1a\clipboard.png)
+
+  ###### AOF 重写流程
+
+  ![img](C:\Users\adslen\AppData\Local\YNote\data\799398018@qq.com\ebf15635ff504fd0ad47744a0e108013\clipboard.png)
+
+  > 1、执行AOF重写请求。
+  >
+  > 如果当前进程正在执行AOF重写，请求不执行。
+  >
+  > 如果当前进程正在执行bgsave操作，重写命令延迟到bgsave完成之后再执行。
+  >
+  > 2、父进程执行fork创建子进程，开销等同于bgsave过程。
+  >
+  > 3.1、主进程fork操作完成后，继续响应其它命令。
+  >
+  > 　　所有修改命令依然写入AOF文件缓冲区并根据appendfsync策略同步到磁盘，保证原有AOF机制正确性。
+  >
+  > 3.2、由于fork操作运用写时复制技术，子进程只能共享fork操作时的内存数据
+  >
+  > 　　由于父进程依然响应命令，Redis使用“AOF”重写缓冲区保存这部分新数据，防止新的AOF文件生成期间丢失这部分数据。
+  >
+  > 4、子进程依据内存快照，按照命令合并规则写入到新的AOF文件。
+  >
+  > 　　每次批量写入硬盘数据量由配置aof-rewrite-incremental-fsync控制，默认为32MB，防止单次刷盘数据过多造成硬盘阻塞。
+  >
+  > 5.1、新AOF文件写入完成后，子进程发送信号给父进程，父进程更新统计信息。
+  >
+  > 5.2、父进程把AOF重写缓冲区的数据写入到新的AOF文件。
+  >
+  > 5.3、使用新的AOF文件替换老的AOF文件，完成AOF重写。
+
+  AOF 重写
+
+  > 由后台子进程 bgrewriteaof 来完成,主要目的 避免阻塞主线程，导致数据库性能下降。 
+
+  风险
+
+  > 1、fork子进程，fork这个瞬间一定是会阻塞主线程的；
+  >
+  > 2、如果父进程此时有写操作并且是已经存在的key, 则父进程就会真正copy这个key(COW), 如果这个key 是大key 的话就会导致copy 时间较长，产生阻塞风险；
+
+  AOF重写不复用AOF本身的日志，
+
+  > 1、防止与父进程产生文件竞争；
+  >
+  > 2、防止重写失败污染原AOF文件。
+
+  ###### 其他
+
+  > 1、同时需要注意在rewriteAOF 时，会引起CPU 升高，原因需要扫描。
+  >
+  > 2、重写触发条件：通过配置自动触发， 触发条件文件大小和基准增量；2、手动触发 bgrewriteaof
+
+  ##### RDB
+
+  ###### 开启RDB
+
+  > ```
+  > save or bgsave
+  > ```
+
+  ###### 执行流程
+
+  ![img](https://images2018.cnblogs.com/blog/1174710/201806/1174710-20180605085813461-389677620.png)
+
+  > 1、Redis父进程首先判断：当前是否在执行save，或bgsave/bgrewriteaof（后面会详细介绍该命令）的子进程，如果在执行则bgsave命令直接返回。bgsave/bgrewriteaof 的子进程不能同时执行，主要是基于性能方面的考虑：两个并发的子进程同时执行大量的磁盘写操作，可能引起严重的性能问题。
+  >
+  > 2、父进程执行fork操作创建子进程，这个过程中父进程是阻塞的，Redis不能执行来自客户端的任何命令
+  >
+  > 3、父进程fork后，bgsave命令返回”Background saving started”信息并不再阻塞父进程，并可以响应其他命令
+  >
+  > 4、子进程创建RDB文件，根据父进程内存快照生成临时快照文件，完成后对原有文件进行原子替换
+  >
+  > 5、子进程发送信号给父进程表示完成，父进程更新统计信息  
+
+  ###### 细节
+
+  > 1、如果在执行 RDB 时，又触发RDB， 会等到第一次RDB 执行完之后，再执行。
+  >
+  > 2、如果在执行RDB时，有新数据写入时，RDB 并不会将新写入的数据进行持久化
+  >
+  > 3、在RDB 结束后，子进程内存退出，内存回收是怎样的？
+  >
+  > ​		1、 子进程指向的内存数据， 没有被父进程修改(cow)，则归父进程持有；
+  >
+  > ​        2、如果在RDB 期间，父进程有对原数据修改对这部分key 进行了cow， 则在子进程退出时，这部分内存会被回收。
+
 - [ ] 持久化机制，AOF、RDB具体区别有哪些？ 
+
+  ###### RDB持久化
+
+  > 优点：RDB文件紧凑，体积小，网络传输快，适合全量复制；恢复速度比AOF快很多。当然，与AOF相比，RDB最重要的优点之一是对性能的影响相对较小。
+  >
+  > 缺点：RDB文件的致命缺点在于其数据快照的持久化方式决定了必然做不到实时持久化，而在数据越来越重要的今天，数据的大量丢失很多时候是无法接受的，因此AOF持久化成为主流。此外，RDB文件需要满足特定格式，兼容性差（如老版本的Redis不兼容新版本的RDB文件）。
+
+  ###### AOF持久化
+
+  > 与RDB持久化相对应，AOF的优点在于支持秒级持久化、兼容性好，缺点是文件大、恢复速度慢、对性能影响大。
+
 - [ ] redis主从复制过程
+
+  
+
 - [ ] Redis 主从同步机制是怎么样的，⽐如slave启动之后同步过程？
+
 - [ ] redis的部署模式
+
 - [ ] Redis Cluster集群如何选主的？
+
 - [ ] Redis Cluster 跟哨兵模式有什么区别吗？ 
+
 - [ ] Sentinel 哨兵模式是如何选主的？
+
 - [ ] redis哨兵选leader过程、槽相关、redis-cluster和codis扩展
+
 - [ ] 这⾥说跟cluster差不多，追问了下，其实还是有些区别的， sdown odown 主观宕机、客观宕机⽅式不太⼀样
 
 
