@@ -271,7 +271,7 @@
 
   ​	 单节点：`SET resource_name my_random_value NX PX 30000`
 
-  ​     <!--该命令仅当 Key 不存在时（NX保证）set 值，并且设置过期时间 3000ms （PX保证），值 my_random_value 必须是所有 client 和所有锁请求发生期间唯一的-->
+  > ​     该命令仅当 Key 不存在时（NX保证）set 值，并且设置过期时间 3000ms （PX保证），值 my_random_value 必须是所有 client 和所有锁请求发生期间唯一的
 
   分布式锁可能遇到问题：
 
