@@ -275,13 +275,17 @@
 
   释放锁：
 
-     `if redis.call("get",KEYS[1]) == ARGV[1] then`
+     
 
-  ​    `return redis.call("del",KEYS[1])` 
+  ```lua
+  if redis.call("get",KEYS[1]) == ARGV[1] then
+      return redis.call("del",KEYS[1])
+  else
+      return 0
+  end
+  ```
 
-  `else`
-
-  ​    `return 0 end`
+  
 
   > 上述实现可以避免释放另一个client创建的锁，如果只有 del 命令的话，那么如果 client1 拿到 lock1 之后因为某些操作阻塞了很长时间，此时 Redis 端 lock1 已经过期了并且已经被重新分配给了 client2，那么 client1 此时再去释放这把锁就会造成 client2 原本获取到的锁被 client1 无故释放了，但现在为每个 client 分配一个 unique 的 string 值可以避免这个问题。至于如何去生成这个 unique string，方法很多随意选择一种就行了。
 
