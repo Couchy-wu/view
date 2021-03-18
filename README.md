@@ -1155,18 +1155,108 @@
 ##### 2.锁
 
 - [ ] 数据库中的乐观锁悲观锁
+
+  
+
 - [ ] 排他锁(x锁)
+
 - [ ] 什么是死锁，如何避免
+
 - [ ] mysql的隔离级别？处理什么问题的（脏读、幻读、不可重复读）(高频)
+
 - [ ] 间隙锁坏处，如何避免
+
 - [ ] 说说这些间隙锁的底层实现 ( 我真的学不动了 )
 
 
 ##### 3.日志
 
 - [ ] undo log
+
+  > undo log 回滚日志，主要作用保存了事务发生之前的数据的一个版本，可以用于回滚，同时可以提供多版本并发控制下的读（MVCC），也即非锁定读。
+  >
+  > undo log  内容为逻辑格式的日志，在执行undo的时候，仅仅是将数据从逻辑上恢复至事务之前的状态，而不是从物理页面上操作实现的，这一点是不同于redo log的。
+
 - [ ] redo log
+
+  redo log 的作用
+
+  > redo log 重做日志， 主要确保事务的持久性。防止在发生故障的时间点，尚有脏页未写入磁盘，在重启mysql服务的时候，根据redo log进行重做，从而达到事务的持久性这一特性。crash safe
+
+  redolog 什么时候会刷回磁盘
+
+  > 1、mysql 后台有进程会定时刷盘；
+  >
+  > 2、清理LRU链表时会顺带刷脏数据
+  >
+  > 3、redo log 写满时会强制刷
+  >
+  > 4、脏页数量过多时（默认占缓冲池75%)，会强制刷盘；
+  >
+  > 5、数据库关闭时，会将所有的脏页刷回磁盘
+
+  正常运行中的实例，数据写入后的最终落盘，是从 redo log 更新过来的还是从 buffer pool 更新过来的呢？
+
+  > 实际上，redo log 并没有记录数据页的完整数据，所以它并没有能力自己去更新磁盘数据页，也就不存在“数据最终落盘，是由 redo log 更新过去”的情况。
+  >
+  > 1、如果是正常运行的实例的话，数据页被修改以后，跟磁盘的数据页不一致，称为脏页。最终数据落盘，就是把内存中的数据页写盘。这个过程，甚至与 redo log 毫无关系。
+  >
+  > 2、在崩溃恢复场景中，InnoDB 如果判断到一个数据页可能在崩溃恢复的时候丢失了更新，就会将它读到内存，然后让 redo log 更新内存内容。更新完成后，内存页变成脏页，就回到了第一种情况的状态。
+
 - [ ] binlog
+
+  bin log 的作用
+
+  > bin log 归档日志，主要作用是用于 数据同步或者数据恢复
+
+  bin log属于逻辑日志还是物理日志？会记录查询SQL 吗？
+
+  > bin log 属于逻辑日志，主要是两种格式，一种是statement 这个会记录更改SQL， 不会记录查询SQL； 另一种是rows 日志会记录，更改前后数据
+  >
+  > 还有一种是 **Mixed**格式，两者的结合，一般的语句修改使用statment格式保存binlog， statement无法完成主从复制的操作，则采用row格式保存binlog。
+
+  rows 日志格式的优缺点(问我，就是不会， 没研究过)
+
+  > **优点** 
+  >
+  > 所有的改变都可以写入到日志，这也是最安全的方式
+  >
+  > 对于任何 INSERT/UPDATE/DELETE 操作，Row-Based 方式需要更少的行锁。
+  >
+  > 对于下面的语句，Row-Based 方式使得 Master 需要更少的行锁，因此可以获得更高的性能：（这个有点看不懂，跟 Master 有什么关系？）
+  >
+  > - INSERT ... SELECT
+  > - 带有 AUTO_INCREMENT 的 INSERT
+  > - UPDATE/DELETE 语句的 where 条件字段没有设置索引
+  >
+  > **缺点**
+  >
+  > - Row-Based 方式会使得更多的数据被写入到日志文件，因为它会将所有改变的行都写入日志。另外，binlog 日志文件在写入日志的时候会被锁住，如果数据太多可能会导致性能问题。可以添加参数 [binlog_row_image=minimal](https://link.zhihu.com/?target=https%3A//dev.mysql.com/doc/refman/5.7/en/replication-options-binary-log.html%23sysvar_binlog_row_image) 来减少这个缺点。
+  > - 如果一个确定的 UDF 产生了大量的 BLOB 数据，那么用 Row-Based 方式记录日志并恢复数据需要花费更多的时间。
+
+  > 不是所有修改数据的语句都可以使用 statement-based 方式记录日志，一些不确定的操作就很难使用 statement-based 方式记录。
+
+  Statement 优缺点
+
+  > **优点** 
+  >
+  > 不需要记录每一行的变化，减少了binlog日志量，节约了IO，提高性能。
+  >
+  > **缺点**
+
+  > 不是所有修改数据的语句都可以使用 statement-based 方式记录日志，一些不确定的操作就很难使用 statement-based 方式记录。
+
+  bin log 和redo log 的两阶段提交
+
+  > 1、新数据写入行时，记录到redo log 中，此时redo log 处于prepare 状态；
+  >
+  > 2、执行器生成这个操作的bin log， 并把bin log 写入磁盘；
+  >
+  > 3、执行器通知引擎的提交事务接口，引擎将redo log 改为commit 状态。
+
+  为什么需要二阶段提交
+
+  > 保证 bin log 和redo log 数据的一致性。如果没有二阶段提交，不论哪种日志 先提交都会导致一致性问题。不进行说明了，很简单的。
 
 ##### 4.架构
 
@@ -1663,11 +1753,47 @@
 - [ ] map 底层实现sync.Map的区别
 
   1. Map底层实现
-     1. 
+
+     ```go
+     // TODO:
+     ```
+
+     
+
   2. sync.Map的底层实现
-     1. 
+
+     ```go
+     var expunged = unsafe.Pointer(new(interface{})) // 哨兵，标志key 已从map中删除。删除key 时，并不会直接从read 上删除，而是将val指向                                                      expunged， dirty上如果也有，直接删了。
+     type Map struct {
+        mu Mutex
+        read atomic.Value //read only 仅用于读。load 的时候直接从read 上返回，可以理解为cache，没有的话会加锁从dirty上读。
+        dirty map[interface{}]*entry // 用于在特定情况下存储最新写入的key-value数据，可以理解成DB
+        misses int  // load 时，如果read上没有，并且从dirty 查找时，这个值就会+1。可以理解为透传的次数。当透传的次数大于 dirty 中的元素的个数时，                  dirty 会转换成read，然后原来dirty的置为nil。这点是与cache 和DB 模型的区别。
+     }
+     
+     type readOnly struct {
+        m       map[interface{}]*entry
+        amended bool //true if the dirty map contains some key not in m. store 新值时，通过互斥锁操作dirty，这时amended置为true。
+                    // amended的必要性， 考虑一个场景如果load 时，read没有该值，dirty为nil， 如果没有amended 每次都要透传到dirty 上;
+                    // 上述场景同样也会导致，read 会指向空dirty，导致数据丢失。所以需要amended 限制，如果amended 为false，上述两件事都不会做。         
+     }
+     ```
+
+     简单概括就是，读写分离，内部两个map 一个用读，另一个用于写，类似于 *缓存和数据库*
+
+     一些细节：
+
+     > 1、在读的时候，需要注意的是 如果无法从read(*缓存*) 上读取到数据，会尝试从dirty(*数据库*) 上读，在尝试从dirty 上读的时候，会先进行check dirty 上的数据是否多余 read 上的，所以需要引入一个flag，如 readOnly 上的amended；还有一点就是，与cache和DB 模型不一样的地方在于 sync.Map从dirty 上读取数据时，并不会更新read， 而是会记录次数**misses**， 如果**misses**大于 dirty 中的元素个数时，就会将dirty 全部转换成read，转换过程使用**atomic.CAS**， 原来的dirty 会指向nil， amended 置为false， golang 的一种优化。
+     >
+     > 2、在写的时候，数据会使用**mux** 更新dirty，此时有个细节，如果 amended 为false， 会将read 上的数据copy 至 dirty 上，原因在于如上文所说，最终read 会直接指向dirty，amended 值为false 大概是两种状态，一种是 **初始状态**，另一种是 read 和dirty 同步完的状态，如果此时不进行数据copy的话，会导致下次 read 指向dirty的时候丢失数据。如果amended 为true 的话，直接dirty 上新增。
+     >
+     > 3、在删除时，对于read 上的值直接指向expunged， dirty 直接 删除；在read 向 dirty copy 时，已删除的值不进行copy
+
+     **从上可以看出来，sync.Map 只适合用做 多读写少的情况**
+
   3. 区别
-     1. 
+
+     > 线程安全和非安全
 
 - [ ] Context 的使用，用法，有无父子关系？怎么去做并发控制？底层实现（高频）
 
@@ -1675,13 +1801,37 @@
 
 - [ ] context 的使用，context是否并发安全？
 
+     
+
 - [ ] defer关键字的作用, 多个defer的调用顺序？
 
+     ###### 作用
+
+     > 延迟调度， 每一个g 里有一个defer 相关的链表，从表头插入，读取的时候也是从表头开始读，所以是后进先出类似 堆栈；
+
+     ###### defer 之前的慢的原因
+
+     > 1、链表效率比较慢，
+     >
+     > 2、执行defer 时，需要copy 堆资源到函数栈上。
+
+     ###### go1.13 优化
+
+     > 降低了defer 信息的堆分配；新增了一个字段heap， 来判断标识_defer是在栈上分配还是堆上分配；defer func 外层出现显式的迭代循环，又或是出现隐式迭代，将会分配到堆上；
+
+     ###### go1.14 优化
+
+     > 新增open coded开放编码模式， 把defer 的执行逻辑放在所属的函数内， 从而不需要创建_defer 结构体， 而且不需要链表；需要注意的是该模式依旧不是和迭代循环。如果出现panic或者rutime.Goexit()，就需要使用链表，但是open coded 注册的函数，并没有使用到链表，需要额外便利，成本要高于之前的版本，考虑到panic出现的概率，这是值的。
+
 - [ ] go panic 的机制。defer,recover的结合使用（golang的panic怎么理解，怎么处理，recover 一般怎么处理）
+
+     
 
 - [ ] 讲一下Golang 空结构体
 
 - [ ] go timer底层的实现 . 时间调度可以用哪些数据结构来实现?( 如 回答 时间轮: nginx 。最小堆: go timer 链表等 )
+
+     
 
 - [ ] init函数如何使用？
 
@@ -1691,7 +1841,13 @@
 
 - [ ] go gc的实现与触发机制
 
+     三色标记法
+
+     触发
+
 - [ ] go 内存分配
+
+     
 
 #### design
 
@@ -1744,4 +1900,4 @@
 #### other
 
 - [ ] 对比 mysql redis http 连接池的实现
-- [ ] 
+
