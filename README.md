@@ -265,13 +265,13 @@
 
 ##### 2.使用场景
 
-- [ ] 分布式锁
+- [x] 分布式锁
 
   ##### 实现:
 
-  ​	 单节点：`SET resource_name my_random_value NX PX 30000`
+       单节点：`SET resource_name my_random_value NX PX 30000`
 
-  > ​     该命令仅当 Key 不存在时（NX保证）set 值，并且设置过期时间 3000ms （PX保证），值 my_random_value 必须是所有 client 和所有锁请求发生期间唯一的
+  >      该命令仅当 Key 不存在时（NX保证）set 值，并且设置过期时间 3000ms （PX保证），值 my_random_value 必须是所有 client 和所有锁请求发生期间唯一的
 
   释放锁：
 
@@ -400,9 +400,7 @@
   > - 将过期时间设置足够长，确保代码逻辑在锁释放之前能够执行完成。
   > - 为获取锁的线程增加守护线程，为将要过期但未释放的锁增加有效时间。
 
-  
-
-- [ ] 缓存雪崩
+- [x] 缓存雪崩
 
   概念
 
@@ -414,13 +412,13 @@
   >
   > 如果出现缓存雪崩，主要应对方案服务治理，限流，资源隔离，熔断，降级。(详细点后面补充)
 
-- [ ] 缓存击穿
+- [x] 缓存击穿
 
   零值处理？
 
   > 对于部分数据，可能数据库始终为空，这时应该设置空缓存(用不过期)，避免每次请求都缓存 miss 直接打到 DB。
 
-- [ ] 缓存穿透
+- [x] 缓存穿透
 
   singlefly
 
@@ -438,9 +436,9 @@
 
   > 通过加入 lease 机制，可以很好避免这两个问题，lease 是 64-bit 的 token，与客户端请求的 key 绑定，对于过时设置，在写入时验证 lease，可以解决这个问题；对于 thundering herd，每个key 10s 分配一次，当 client 在没有获取到 lease 时，可以稍微等一下再访问 cache，这时往往cache 中已有数据。（基础库支持 & 修改 cache 源码）；
 
-  
 
-- [ ] 大key
+
+- [x] 大key
 
   ###### 什么是大key
 
@@ -452,7 +450,7 @@
 
   ###### 大key 导致的问题
 
-  > 1、删除大Key的时间复杂度: O(N), N代表大key里的值数量，因为redis是单线程一个个删；所			   以删大key也会卡qps。查询突然很慢，qps降低；
+  > 1、删除大Key的时间复杂度: O(N), N代表大key里的值数量，因为redis是单线程一个个删；所            以删大key也会卡qps。查询突然很慢，qps降低；
   >
   > 2、数据倾斜，部分redis分片节点存储占用很高，
 
@@ -500,9 +498,9 @@
 
   >  1、实际开发中，不要超过10KB； hash、list、set、zset元素个数不要超过5000。  
   >
-  >   2、分治法，加一些key前缀\后置分解（如时间、哈希前缀、用户id后缀）;
+  >  2、分治法，加一些key前缀\后置分解（如时间、哈希前缀、用户id后缀）;
 
-- [ ] 热key
+- [x] 热key
 
   ###### 如何发现热 Key
 
@@ -522,15 +520,15 @@
   >
   >    4、如果应用程序层可以忍受稍微过期一点的数据，针对这点可以进一步降低系统负载。当一个key 被删除的时候（delete 请求或者 cache 爆棚清空间了），它被放倒一个临时的数据结构里，会再续上比较短的一段时间。当有请求进来的时候会返回这个数据并标记为“Stale”。对于大部分应用场景而言，Stale Value 是可以忍受的。(不建议，需要修改redis源码)
 
-- [ ] redis超时是什么引起的
+- [x] redis超时是什么引起的
 
   1、是否被网络、CPU 或内存（RAM）的限制？
 
-  > ​    1、 验证客户端和搭建 Redis-Server 的服务器支持的最大带宽是多少；
+  >     1、 验证客户端和搭建 Redis-Server 的服务器支持的最大带宽是多少；
   >
-  > ​    2、 验证是否被客户端或服务器上的 CPU 限制——这将导致请求等待 CPU 时间，从而超时。
+  >     2、 验证是否被客户端或服务器上的 CPU 限制——这将导致请求等待 CPU 时间，从而超时。
   >
-  > ​    3、当 Redis 数据量超过分配的内存（RAM）限制时，发生 Redis 锁死，导致超时。
+  >     3、当 Redis 数据量超过分配的内存（RAM）限制时，发生 Redis 锁死，导致超时。
 
   2、是否有命令（command）在 Redis 服务器上处理时，消耗很长时间？
 
@@ -592,25 +590,30 @@
 
   > 50个并发链接，10000个请求，每个请求2kb。
 
+
+
+
+
+
 ##### 3.架构
 
-- [ ] redis是单线程的吗
+- [x] redis是单线程的吗
 
   Redis在6.0推出了多线程，可以在高并发场景下利用CPU多核多线程读写客户端数据，进一步提升server性能，当然，只是针对客户端的读写是并行的，每个命令的真正操作依旧是单线程的。
 
   **主要目的** 解决并发量非常大时，单线程读写客户端IO数据存在性能瓶颈，虽然采用IO多路复用机制，但是读写客户端数据依旧是同步IO，只能单线程依次读取客户端的数据，无法利用到CPU多核。
 
-- [ ] redis底层网络原理
+- [x] redis底层网络原理
 
   别问，问就是reactor
 
-- [ ] redis为什么速度比较快
+- [x] redis为什么速度比较快
 
   > 1.Redis 大部分操作是在内存上完成，并且采用了高效的数据结构如哈希表和跳表
   >
   > 2.Redis 采用多路复用，能保证在网络 IO 中可以并发处理大量的客户端请求，实现高吞吐率
 
-- [ ] redis的发布/订阅的原理
+- [x] redis的发布/订阅的原理
 
   命令
 
@@ -628,7 +631,7 @@
 
   
 
-- [ ] 数据缓存过期策略
+- [x] 数据缓存过期策略
 
   > 在设置了过期时间的数据中进行淘汰，包括 volatile-random、volatile-ttl、volatile-lru、volatile-lfu（Redis 4.0 后新增）四种。
   >
@@ -642,27 +645,27 @@
   >
   > volatile-lfu 会使用 LFU 算法选择设置了过期时间的键值对。
 
-- [ ] redis内存淘汰策略（说说 redis 中到期删除是怎么实现的）
+- [x] redis内存淘汰策略（说说 redis 中到期删除是怎么实现的）
 
   ###### 定时删除
 
-  ​		在设置某个key 的过期时间同时，我们创建一个定时器，让定时器在该过期时间到来时，立即执行对其进行删除的操作。
-
-  ​		优点：定时删除对内存是最友好的，能够保存内存的key一旦过期就能立即从内存中删除。
-
-  ​		缺点：对CPU最不友好，在过期键比较多的时候，删除过期键会占用一部分 CPU 时间，对服务器的响应时间和吞吐量造成影响。
+         在设置某个key 的过期时间同时，我们创建一个定时器，让定时器在该过期时间到来时，立即执行对其进行删除的操作。
+      
+         优点：定时删除对内存是最友好的，能够保存内存的key一旦过期就能立即从内存中删除。
+      
+         缺点：对CPU最不友好，在过期键比较多的时候，删除过期键会占用一部分 CPU 时间，对服务器的响应时间和吞吐量造成影响。
 
   ###### 惰性删除
 
-  ​		设置该key 过期时间后，我们不去管它，当需要该key时，我们在检查其是否过期，如果过期，我们就删掉它，反之返回该key。
+         设置该key 过期时间后，我们不去管它，当需要该key时，我们在检查其是否过期，如果过期，我们就删掉它，反之返回该key。
 
   　　优点：对 CPU友好，我们只会在使用该键时才会进行过期检查，对于很多用不到的key不用浪费时间进行过期检查。
 
-  　　缺点：对内存不友好，如果一个键已经过期，但是一直没有使用，那么该键就会一直存在内存中，如果数据库中有很多这种使用不到的过期键，这些键便					永远不会被删除，内存永远不会释放。从而造成内存泄漏。
+  　　缺点：对内存不友好，如果一个键已经过期，但是一直没有使用，那么该键就会一直存在内存中，如果数据库中有很多这种使用不到的过期键，这些键便                永远不会被删除，内存永远不会释放。从而造成内存泄漏。
 
   ###### 定期删除
 
-  ​		每隔一段时间，我们就对一些key进行检查，删除里面过期的key。
+         每隔一段时间，我们就对一些key进行检查，删除里面过期的key。
 
   　　优点：可以通过限制删除操作执行的时长和频率来减少删除操作对 CPU 的影响。另外定期删除，也能有效释放过期键占用的内存。
 
@@ -672,13 +675,13 @@
 
   　　　　　如果执行的太少，那又和惰性删除一样了，过期键占用的内存不会及时得到释放。
 
-  　　　　　另外最重要的是，在获取某个键时，如果某个键的过期时间已经到了，但是还没执行定期删除，那么就会返回这个键的值，这是业务不能忍受的错					误。
+  　　　　　另外最重要的是，在获取某个键时，如果某个键的过期时间已经到了，但是还没执行定期删除，那么就会返回这个键的值，这是业务不能忍受的错                误。
 
-- [ ] redis 的删除策略。定时 定期 惰性 lru(LRU高频)
+- [x] redis 的删除策略。定时 定期 惰性 lru(LRU高频)
 
   同上
 
-- [ ] 持久化策略及其对比:RDB和AOF区别，AOF重写（如果数据量比较大都可能会造成redis 抖动）
+- [x] 持久化策略及其对比:RDB和AOF区别，AOF重写（如果数据量比较大都可能会造成redis 抖动）
 
   ##### AOF
 
@@ -700,25 +703,25 @@
 
   >  AOF 采用写后日志。
   >
-  > 优势
+  >  优势
   >
   >  1、可以避免对当前指令的阻塞;
   >
-  > 2、可以避免出现记录错误日志。
+  >  2、可以避免出现记录错误日志。
   >
-  > 劣势
+  >  劣势
   >
-  > 1、 可能会对之后的指令造成阻塞；
+  >  1、 可能会对之后的指令造成阻塞；
   >
-  > 2、 当未及时记录日志丢失数据
+  >  2、 当未及时记录日志丢失数据
 
   ###### 三种回写策略 
 
-  ![img](C:\Users\adslen\AppData\Local\YNote\data\799398018@qq.com\daef4d3aba324411912810a8ec99ee1a\clipboard.png)
+  ![image-20210307204809914](https://raw.githubusercontent.com/ShadowStorm97/cloudimg/main/image-20210307204809914.png)
 
   ###### AOF 重写流程
 
-  ![img](C:\Users\adslen\AppData\Local\YNote\data\799398018@qq.com\ebf15635ff504fd0ad47744a0e108013\clipboard.png)
+  ![image-20210307204832364](https://raw.githubusercontent.com/ShadowStorm97/cloudimg/main/image-20210307204832364.png)
 
   > 1、执行AOF重写请求。
   >
@@ -778,7 +781,7 @@
 
   ###### 执行流程
 
-  img
+  ![img](https://images2018.cnblogs.com/blog/1174710/201806/1174710-20180605085813461-389677620.png)
 
   > 1、Redis父进程首先判断：当前是否在执行save，或bgsave/bgrewriteaof（后面会详细介绍该命令）的子进程，如果在执行则bgsave命令直接返回。bgsave/bgrewriteaof 的子进程不能同时执行，主要是基于性能方面的考虑：两个并发的子进程同时执行大量的磁盘写操作，可能引起严重的性能问题。
   >
@@ -798,255 +801,257 @@
   >
   > 3、在RDB 结束后，子进程内存退出，内存回收是怎样的？
   >
-  > ​		1、 子进程指向的内存数据， 没有被父进程修改(cow)，则归父进程持有；
+  > 1、 子进程指向的内存数据， 没有被父进程修改(cow)，则归父进程持有；
   >
-  > ​        2、如果在RDB 期间，父进程有对原数据修改对这部分key 进行了cow， 则在子进程退出时，这部分内存会被回收。
+  > 2、如果在RDB 期间，父进程有对原数据修改对这部分key 进行了cow， 则在子进程退出时，这部分内存会被回收。
 
-- [ ] 持久化机制，AOF、RDB具体区别有哪些？ 
+- [x] 持久化机制，AOF、RDB具体区别有哪些？ 
 
-  RDB持久化
+  ###### RDB持久化
 
-  优点：RDB文件紧凑，体积小，网络传输快，适合全量复制；恢复速度比AOF快很多。当然，与AOF相比，RDB最重要的优点之一是对性能的影响相对较小。
+  > 优点：RDB文件紧凑，体积小，网络传输快，适合全量复制；恢复速度比AOF快很多。当然，与AOF相比，RDB最重要的优点之一是对性能的影响相对较小。
+  >
+  > 缺点：RDB文件的致命缺点在于其数据快照的持久化方式决定了必然做不到实时持久化，而在数据越来越重要的今天，数据的大量丢失很多时候是无法接受的，因此AOF持久化成为主流。此外，RDB文件需要满足特定格式，兼容性差（如老版本的Redis不兼容新版本的RDB文件）。
 
-  缺点：RDB文件的致命缺点在于其数据快照的持久化方式决定了必然做不到实时持久化，而在数据越来越重要的今天，数据的大量丢失很多时候是无法接受的，因此AOF持久化成为主流。此外，RDB文件需要满足特定格式，兼容性差（如老版本的Redis不兼容新版本的RDB文件）。
+  ###### AOF持久化
 
-  AOF持久化
+  > 与RDB持久化相对应，AOF的优点在于支持秒级持久化、兼容性好，缺点是文件大、恢复速度慢、对性能影响大。
 
-  与RDB持久化相对应，AOF的优点在于支持秒级持久化、兼容性好，缺点是文件大、恢复速度慢、对性能影响大。
-
-- [ ] redis主从复制过程
+- [x] redis主从复制过程
 
   ###### 全量同步
 
-  ![全量复制](G:\redis\全量复制.png)
+  ![image-20210308221429821](https://raw.githubusercontent.com/ShadowStorm97/cloudimg/main/image-20210308221429821.png)
 
-> ​        1）从服务器连接主服务器，发送SYNC命令；
-> 　　2）主服务器接收到SYNC命名后，开始执行BGSAVE命令生成RDB文件并使用缓冲区记录此后执行的所有写命令；
-> 　　3）主服务器BGSAVE执行完后，向所有从服务器发送快照文件，并在发送期间继续记录被执行的写命令；
-> 　　4）从服务器收到快照文件后丢弃所有旧数据，载入收到的快照；
-> 　　5）主服务器快照发送完毕后开始向从服务器发送缓冲区中的写命令；
-> 　　6）从服务器完成对快照的载入，开始接收命令请求，并执行来自主服务器缓冲区的写命令；
+  >         1）从服务器连接主服务器，发送SYNC命令；
+  >         　　2）主服务器接收到SYNC命名后，开始执行BGSAVE命令生成RDB文件并使用缓冲区记录此后执行的所有写命令；
+  >         　　3）主服务器BGSAVE执行完后，向所有从服务器发送快照文件，并在发送期间继续记录被执行的写命令；
+  >         　　4）从服务器收到快照文件后丢弃所有旧数据，载入收到的快照；
+  >         　　5）主服务器快照发送完毕后开始向从服务器发送缓冲区中的写命令；
+  >         　　6）从服务器完成对快照的载入，开始接收命令请求，并执行来自主服务器缓冲区的写命令；
 
-###### 增量同步
+  ###### 增量同步
 
-> Redis增量复制是指Slave初始化后开始正常工作时主服务器发生的写操作同步到从服务器的过程。
-> 增量复制的过程主要是主服务器每执行一个写命令就会向从服务器发送相同的写命令，从服务器接收并执行收到的写命令。
+  > Redis增量复制是指Slave初始化后开始正常工作时主服务器发生的写操作同步到从服务器的过程。
+  > 增量复制的过程主要是主服务器每执行一个写命令就会向从服务器发送相同的写命令，从服务器接收并执行收到的写命令。
 
-###### Redis主从同步策略
+  ###### Redis主从同步策略
 
-> 主从刚刚连接的时候，进行全量同步；全同步结束后，进行增量同步。当然，如果有需要，slave 在任何时候都可以发起全量同步。redis 策略是，无论如何，首先会尝试进行增量同步，如不成功，要求从机进行全量同步。
+  > 主从刚刚连接的时候，进行全量同步；全同步结束后，进行增量同步。当然，如果有需要，slave 在任何时候都可以发起全量同步。redis 策略是，无论如何，首先会尝试进行增量同步，如不成功，要求从机进行全量同步。
 
-- [ ] Redis 主从同步机制是怎么样的，⽐如slave启动之后同步过程？
+  - [x] Redis 主从同步机制是怎么样的，⽐如slave启动之后同步过程？
 
-  同上
+    同上
 
-- [ ] redis的部署模式
+  - [x] redis的部署模式
 
-  
+    1. 单机
+    2. 主从
+    3. 主从 + sentinel
+    4. redis cluster
 
-- [ ] Redis Cluster集群如何选主的？
+  - [x] Redis Cluster集群如何选主的？
 
-  > 1.当slave发现自己的master挂了
-  > 2.将自己记录的currentEpoch加1,并向其他节点请求投票给自己成为master
-  > 3.其他节点收到请求,只有master会回应,判断请求的合法性,并投票,可能会有多个slave请求,每个master只能投一票
-  > 4.slave收集master的投票
-  > 5.当slave收到的投票超过半数后就可以成为master
-  > 6.广播消息通知其他节点
-  >
-  > ​	1.当slave发现自己的master挂了并不会立即进行请求投票,会有一定的延时,确保其他的master也意识到当前的master挂了,否则master可能会拒绝投票
-  > ​    2.延时计算公式Delay=500ms+random(0-500)ms+Slave_rank* 100ms(slave_rank为复制数据的等级,等级越小表示复制数据越多也是为了保证能让拥有最新数据的slave最先发起选举)
+    > 1.当slave发现自己的master挂了
+    > 2.将自己记录的currentEpoch加1,并向其他节点请求投票给自己成为master
+    > 3.其他节点收到请求,只有master会回应,判断请求的合法性,并投票,可能会有多个slave请求,每个master只能投一票
+    > 4.slave收集master的投票
+    > 5.当slave收到的投票超过半数后就可以成为master
+    > 6.广播消息通知其他节点
+    >
+    > 1.当slave发现自己的master挂了并不会立即进行请求投票,会有一定的延时,确保其他的master也意识到当前的master挂了,否则master可能会拒绝投票
+    >
+    > 2.延时计算公式Delay=500ms+random(0-500)ms+Slave_rank* 100ms(slave_rank为复制数据的等级,等级越小表示复制数据越多也是为了保证能让拥有最新数据的slave最先发起选举)
 
-  ##### 名词解释
+    ##### 名词解释
 
-  ###### 纪元（epoch）
+    ###### 纪元（epoch）
 
-  > Redis Cluster 使用了类似于 ***Raft*** 算法 ***term***（任期）的概念称为 ***epoch***（纪元），用来给事件增加版本号。Redis 集群中的纪元主要是两种：***currentEpoch*** 和 ***configEpoch***。
+    > Redis Cluster 使用了类似于 ***Raft*** 算法 ***term***（任期）的概念称为 ***epoch***（纪元），用来给事件增加版本号。Redis 集群中的纪元主要是两种：***currentEpoch*** 和 ***configEpoch***。
 
-  ###### currentEpoch
+    ###### currentEpoch
 
-  > 这是一个集群状态相关的概念，可以当做记录集群状态变更的递增版本号。每个集群节点，都会通过 server.cluster->currentEpoch 记录当前的 ***currentEpoch***。
-  >
-  > 集群节点创建时，不管是 **master** 还是 **slave**，都置 **currentEpoch** 为 0。当前节点接收到来自其他节点的包时，如果发送者的 **currentEpoch**（消息头部会包含发送者的 ***currentEpoch***）大于当前节点的***currentEpoch***，那么当前节点会更新 **currentEpoch** 为发送者的 ***currentEpoch***。因此，集群中所有节点的 ***currentEpoch*** 最终会达成一致，相当于对集群状态的认知达成了一致。
+    > 这是一个集群状态相关的概念，可以当做记录集群状态变更的递增版本号。每个集群节点，都会通过 server.cluster->currentEpoch 记录当前的 ***currentEpoch***。
+    >
+    > 集群节点创建时，不管是 **master** 还是 **slave**，都置 **currentEpoch** 为 0。当前节点接收到来自其他节点的包时，如果发送者的 **currentEpoch**（消息头部会包含发送者的 ***currentEpoch***）大于当前节点的***currentEpoch***，那么当前节点会更新 **currentEpoch** 为发送者的 ***currentEpoch***。因此，集群中所有节点的 ***currentEpoch*** 最终会达成一致，相当于对集群状态的认知达成了一致。
 
-  ###### currentEpoch 作用
+    ###### currentEpoch 作用
 
-  > **currentEpoch**作用在于，当集群的状态发生改变，某个节点为了执行一些动作需要寻求其他节点的同意时，就会增加 ***currentEpoch*** 的值。目前 ***currentEpoch*** 只用于 **slave** 的故障转移流程，这就跟哨兵中的sentinel.current_epoch 作用是一模一样的。当 ***slave A*** 发现其所属的 ***master*** 下线时，就会试图发起故障转移流程。首先就是增加 **currentEpoch** 的值，这个增加后的 **currentEpoch** 是所有集群节点中最大的。然后***slave A\*** 向所有节点发起拉票请求，请求其他 ***master*** 投票给自己，使自己能成为新的 ***master***。其他节点收到包后，发现发送者的 ***currentEpoch*** 比自己的 ***currentEpoch*** 大，就会更新自己的 ***currentEpoch***，并在尚未投票的情况下，投票给 ***slave A***，表示同意使其成为新的 ***master***。
+    > **currentEpoch**作用在于，当集群的状态发生改变，某个节点为了执行一些动作需要寻求其他节点的同意时，就会增加 ***currentEpoch*** 的值。目前 ***currentEpoch*** 只用于 **slave** 的故障转移流程，这就跟哨兵中的sentinel.current_epoch 作用是一模一样的。当 ***slave A*** 发现其所属的 ***master*** 下线时，就会试图发起故障转移流程。首先就是增加 **currentEpoch** 的值，这个增加后的 **currentEpoch** 是所有集群节点中最大的。然后***slave A\*** 向所有节点发起拉票请求，请求其他 ***master*** 投票给自己，使自己能成为新的 ***master***。其他节点收到包后，发现发送者的 ***currentEpoch*** 比自己的 ***currentEpoch*** 大，就会更新自己的 ***currentEpoch***，并在尚未投票的情况下，投票给 ***slave A***，表示同意使其成为新的 ***master***。
 
-  ###### configEpoch
+    ###### configEpoch
 
-  > 这是一个集群节点配置相关的概念，每个集群节点都有自己独一无二的 configepoch。所谓的节点配置，实际上是指节点所负责的槽位信息。
-  >
-  > 每一个 **master** 在向其他节点发送包时，都会附带其 **configEpoch** 信息，以及一份表示它所负责的 **slots** 信息。而 **slave** 向其他节点发送包时，其包中的 ***configEpoch*** 和负责槽位信息，是其 **master** 的 **configEpoch** 和负责的 ***slot*** 信息。节点收到包之后，就会根据包中的 ***configEpoch*** 和负责的 ***slots*** 信息，记录到相应节点属性中。
+    > 这是一个集群节点配置相关的概念，每个集群节点都有自己独一无二的 configepoch。所谓的节点配置，实际上是指节点所负责的槽位信息。
+    >
+    > 每一个 **master** 在向其他节点发送包时，都会附带其 **configEpoch** 信息，以及一份表示它所负责的 **slots** 信息。而 **slave** 向其他节点发送包时，其包中的 ***configEpoch*** 和负责槽位信息，是其 **master** 的 **configEpoch** 和负责的 ***slot*** 信息。节点收到包之后，就会根据包中的 ***configEpoch*** 和负责的 ***slots*** 信息，记录到相应节点属性中。
 
-  ###### configEpoch 作用
+    ###### configEpoch 作用
 
-  > **configEpoch** 主要用于解决不同的节点的配置发生冲突的情况。举个例子就明白了：节点A 宣称负责 **slot 1**，其向外发送的包中，包含了自己的 **configEpoch** 和负责的 **slots** 信息。节点 C 收到 A 发来的包后，发现自己当前没有记录 ***slot 1*** 的负责节点（也就是 server.cluster->slots[1] 为 NULL），就会将 A 置为 ***slot 1*** 的负责节点（server.cluster->slots[1] = A），并记录节点 A 的 **configEpoch**。后来，节点 C 又收到了 B 发来的包，它也宣称负责 ***slot 1***，此时，如何判断 ***slot 1*** 到底由谁负责呢？
-  >
-  > 这就是 **configEpoch** 起作用的时候了，C 在 B 发来的包中，发现它的 ***configEpoch***，要比 A 的大，说明 B 是更新的配置。因此，就将 **slot 1** 的负责节点设置为 B（server.cluster->slots[1] = B）。在 **slave** 发起选举，获得足够多的选票之后，成功当选时，也就是 **slave** 试图替代其已经下线的旧 **master**，成为新的 **master** 时，会增加它自己的 ***configEpoch***，使其成为当前所有集群节点的 ***configEpoch*** 中的最大值。这样，该 ***slave*** 成为 ***master*** 后，就会向所有节点发送广播包，强制其他节点更新相关 ***slots*** 的负责节点为自己。
+    > **configEpoch** 主要用于解决不同的节点的配置发生冲突的情况。举个例子就明白了：节点A 宣称负责 **slot 1**，其向外发送的包中，包含了自己的 **configEpoch** 和负责的 **slots** 信息。节点 C 收到 A 发来的包后，发现自己当前没有记录 ***slot 1*** 的负责节点（也就是 server.cluster->slots[1] 为 NULL），就会将 A 置为 ***slot 1*** 的负责节点（server.cluster->slots[1] = A），并记录节点 A 的 **configEpoch**。后来，节点 C 又收到了 B 发来的包，它也宣称负责 ***slot 1***，此时，如何判断 ***slot 1*** 到底由谁负责呢？
+    >
+    > 这就是 **configEpoch** 起作用的时候了，C 在 B 发来的包中，发现它的 ***configEpoch***，要比 A 的大，说明 B 是更新的配置。因此，就将 **slot 1** 的负责节点设置为 B（server.cluster->slots[1] = B）。在 **slave** 发起选举，获得足够多的选票之后，成功当选时，也就是 **slave** 试图替代其已经下线的旧 **master**，成为新的 **master** 时，会增加它自己的 ***configEpoch***，使其成为当前所有集群节点的 ***configEpoch*** 中的最大值。这样，该 ***slave*** 成为 ***master*** 后，就会向所有节点发送广播包，强制其他节点更新相关 ***slots*** 的负责节点为自己。
 
-- [ ] Redis Cluster 跟哨兵模式有什么区别吗？ 
+  - [x] Redis Cluster 跟哨兵模式有什么区别吗？ 
 
-- [ ] 这⾥说跟cluster差不多，追问了下，其实还是有些区别的， sdown odown 主观宕机、客观宕机⽅式不太⼀样
+    都是高可用方案,但是哨兵模式下只有一台主节点，容易出现性能瓶颈,并且在数据量大后,同步数据需要Fork子进程,而拷贝页表的开销会很大,从而阻塞主进程，而Redis Cluster可以横向扩展,部署多主节点,解决单点写入性能瓶颈。另外redis cluster内置了哨兵。
 
-- [ ] Sentinel 哨兵模式是如何选主的？
+  - [x] Sentinel 哨兵模式是如何选主的？
 
-  ###### slave->master 选举算法
+    ###### slave->master 选举算法
 
-  > 如果一个 master 被认为 odown 了，而且 majority 数量的哨兵都允许主备切换，那么某个哨兵就会执行主备切换操作，此时首先要选举一个 slave 来，会考虑 slave 的一些信息：
-  >
-  > - 跟 master 断开连接的时长
-  > - slave 优先级
-  > - 复制 offset
-  > - run id
-  >
-  > 如果一个 slave 跟 master 断开连接的时间已经超过了 `down-after-milliseconds` 的 10 倍，外加 master 宕机的时长，那么 slave 就被认为不适合选举为 master。
-  >
-  > ```
-  > (down-after-milliseconds * 10) + milliseconds_since_master_is_in_SDOWN_state
-  > ```
-  >
-  > 接下来会对 slave 进行排序：
-  >
-  > - 按照 slave 优先级进行排序，slave priority 越低，优先级就越高。
-  > - 如果 slave priority 相同，那么看 replica offset，哪个 slave 复制了越多的数据，offset 越靠后，优先级就越高。
-  > - 如果上面两个条件都相同，那么选择一个 run id 比较小的那个 slave。
+    > 如果一个 master 被认为 odown 了，而且 majority 数量的哨兵都允许主备切换，那么某个哨兵就会执行主备切换操作，此时首先要选举一个 slave 来，会考虑 slave 的一些信息：
+    >
+    > - 跟 master 断开连接的时长
+    > - slave 优先级
+    > - 复制 offset
+    > - run id
+    >
+    > 如果一个 slave 跟 master 断开连接的时间已经超过了 `down-after-milliseconds` 的 10 倍，外加 master 宕机的时长，那么 slave 就被认为不适合选举为 master。
+    >
+    > ```
+    > (down-after-milliseconds * 10) + milliseconds_since_master_is_in_SDOWN_state
+    > ```
+    >
+    > 接下来会对 slave 进行排序：
+    >
+    > - 按照 slave 优先级进行排序，slave priority 越低，优先级就越高。
+    > - 如果 slave priority 相同，那么看 replica offset，哪个 slave 复制了越多的数据，offset 越靠后，优先级就越高。
+    > - 如果上面两个条件都相同，那么选择一个 run id 比较小的那个 slave。
 
-  ###### quorum 和 majority
+    ###### quorum 和 majority
 
-  > 每次一个哨兵要做主备切换，首先需要 quorum 数量的哨兵认为 odown，然后选举出一个哨兵来做切换，这个哨兵还需要得到 majority 哨兵的授权，才能正式执行切换。
-  >
-  > 如果 quorum < majority，比如 5 个哨兵，majority 就是 3，quorum 设置为 2，那么就 3 个哨兵授权就可以执行切换。
-  >
-  > 但是如果 quorum >= majority，那么必须 quorum 数量的哨兵都授权，比如 5 个哨兵，quorum 是 5，那么必须 5 个哨兵都同意授权，才能执行切换。
+    > 每次一个哨兵要做主备切换，首先需要 quorum 数量的哨兵认为 odown，然后选举出一个哨兵来做切换，这个哨兵还需要得到 majority 哨兵的授权，才能正式执行切换。
+    >
+    > 如果 quorum < majority，比如 5 个哨兵，majority 就是 3，quorum 设置为 2，那么就 3 个哨兵授权就可以执行切换。
+    >
+    > 但是如果 quorum >= majority，那么必须 quorum 数量的哨兵都授权，比如 5 个哨兵，quorum 是 5，那么必须 5 个哨兵都同意授权，才能执行切换。
 
-  ###### configuration epoch
+    ###### configuration epoch
 
-  > 哨兵会对一套 redis master+slaves 进行监控，有相应的监控的配置。
-  >
-  > 执行切换的那个哨兵，会从要切换到的新 master（salve->master）那里得到一个 configuration epoch，这就是一个 version 号，每次切换的 version 号都必须是唯一的。
-  >
-  > 如果第一个选举出的哨兵切换失败了，那么其他哨兵，会等待 failover-timeout 时间，然后接替继续执行切换，此时会重新获取一个新的 configuration epoch，作为新的 version 号。
+    > 哨兵会对一套 redis master+slaves 进行监控，有相应的监控的配置。
+    >
+    > 执行切换的那个哨兵，会从要切换到的新 master（salve->master）那里得到一个 configuration epoch，这就是一个 version 号，每次切换的 version 号都必须是唯一的。
+    >
+    > 如果第一个选举出的哨兵切换失败了，那么其他哨兵，会等待 failover-timeout 时间，然后接替继续执行切换，此时会重新获取一个新的 configuration epoch，作为新的 version 号。
 
-  ###### configuration 传播
+    ###### configuration 传播
 
-  > 哨兵完成切换之后，会在自己本地更新生成最新的 master 配置，然后同步给其他的哨兵，就是通过之前说的 `pub/sub` 消息机制。
-  >
-  > 这里之前的 version 号就很重要了，因为各种消息都是通过一个 channel 去发布和监听的，所以一个哨兵完成一次新的切换之后，新的 master 配置是跟着新的 version 号的。其他的哨兵都是根据版本号的大小来更新自己的 master 配置的。
+    > 哨兵完成切换之后，会在自己本地更新生成最新的 master 配置，然后同步给其他的哨兵，就是通过之前说的 `pub/sub` 消息机制。
+    >
+    > 这里之前的 version 号就很重要了，因为各种消息都是通过一个 channel 去发布和监听的，所以一个哨兵完成一次新的切换之后，新的 master 配置是跟着新的 version 号的。其他的哨兵都是根据版本号的大小来更新自己的 master 配置的。
 
-- [ ] redis哨兵选leader过程、槽相关、redis-cluster和codis扩展、
+  - [x] redis哨兵选leader过程、槽相关、redis-cluster和codis扩展、
 
-  ###### redis cluster 介绍
+    ###### redis cluster 介绍
 
-  > - 自动将数据进行分片，每个 master 上放一部分数据
-  > - 提供内置的高可用支持，部分 master 不可用时，还是可以继续工作的
-  >
-  > 在 redis cluster 架构下，每个 redis 要放开两个端口号，比如一个是 6379，另外一个就是 加1w 的端口号，比如 16379。
-  >
-  > 16379 端口号是用来进行节点间通信的，也就是 cluster bus 的东西，cluster bus 的通信，用来进行故障检测、配置更新、故障转移授权。cluster bus 用了另外一种二进制的协议，`gossip` 协议，用于节点间进行高效的数据交换，占用更少的网络带宽和处理时间。
+    > - 自动将数据进行分片，每个 master 上放一部分数据
+    > - 提供内置的高可用支持，部分 master 不可用时，还是可以继续工作的
+    >
+    > 在 redis cluster 架构下，每个 redis 要放开两个端口号，比如一个是 6379，另外一个就是 加1w 的端口号，比如 16379。
+    >
+    > 16379 端口号是用来进行节点间通信的，也就是 cluster bus 的东西，cluster bus 的通信，用来进行故障检测、配置更新、故障转移授权。cluster bus 用了另外一种二进制的协议，`gossip` 协议，用于节点间进行高效的数据交换，占用更少的网络带宽和处理时间。
 
-  ##### 节点间的内部通信机制
+    ##### 节点间的内部通信机制
 
-  ###### 本通信原理
+    ###### 本通信原理
 
-  > 集群元数据的维护有两种方式：集中式、Gossip 协议。redis cluster 节点间采用 gossip 协议进行通信。
-  >
-  > **集中式**是将集群元数据（节点信息、故障等等）几种存储在某个节点上。集中式元数据集中存储的一个典型代表，就是大数据领域的 `storm`。它是分布式的大数据实时计算引擎，是集中式的元数据存储的结构，底层基于 zookeeper（分布式协调的中间件）对所有元数据进行存储维护。
-  >
-  > 
-  >
-  > redis 维护集群元数据采用另一个方式， `gossip` 协议，所有节点都持有一份元数据，不同的节点如果出现了元数据的变更，就不断将元数据发送给其它的节点，让其它节点也进行元数据的变更。
-  >
-  > 
-  >
-  > **集中式**的**好处**在于，元数据的读取和更新，时效性非常好，一旦元数据出现了变更，就立即更新到集中式的存储中，其它节点读取的时候就可以感知到；**不好**在于，所有的元数据的更新压力全部集中在一个地方，可能会导致元数据的存储有压力。
-  >
-  > 
-  >
-  > gossip 好处在于，元数据的更新比较分散，不是集中在一个地方，更新请求会陆陆续续打到所有节点上去更新，降低了压力；不好在于，元数据的更新有延时，可能导致集群中的一些操作会有一些滞后。
+    > 集群元数据的维护有两种方式：集中式、Gossip 协议。redis cluster 节点间采用 gossip 协议进行通信。
+    >
+    > **集中式**是将集群元数据（节点信息、故障等等）几种存储在某个节点上。集中式元数据集中存储的一个典型代表，就是大数据领域的 `storm`。它是分布式的大数据实时计算引擎，是集中式的元数据存储的结构，底层基于 zookeeper（分布式协调的中间件）对所有元数据进行存储维护。
+    >
+    > 
+    >
+    > redis 维护集群元数据采用另一个方式， `gossip` 协议，所有节点都持有一份元数据，不同的节点如果出现了元数据的变更，就不断将元数据发送给其它的节点，让其它节点也进行元数据的变更。
+    >
+    > 
+    >
+    > **集中式**的**好处**在于，元数据的读取和更新，时效性非常好，一旦元数据出现了变更，就立即更新到集中式的存储中，其它节点读取的时候就可以感知到；**不好**在于，所有的元数据的更新压力全部集中在一个地方，可能会导致元数据的存储有压力。
+    >
+    > 
+    >
+    > gossip 好处在于，元数据的更新比较分散，不是集中在一个地方，更新请求会陆陆续续打到所有节点上去更新，降低了压力；不好在于，元数据的更新有延时，可能导致集群中的一些操作会有一些滞后。
 
-  ###### gossip 协议
+    ###### gossip 协议
 
-  > gossip 协议包含多种消息，包含 `ping`,`pong`,`meet`,`fail` 等等。
-  >
-  > - meet：某个节点发送 meet 给新加入的节点，让新节点加入集群中，然后新节点就会开始与其它节点进行通信。
-  >
-  > ```
-  > redis-trib.rb add-node
-  > ```
-  >
-  > 其实内部就是发送了一个 gossip meet 消息给新加入的节点，通知那个节点去加入我们的集群。
-  >
-  > - ping：每个节点都会频繁给其它节点发送 ping，其中包含自己的状态还有自己维护的集群元数据，互相通过 ping 交换元数据。
-  > - pong：返回 ping 和 meeet，包含自己的状态和其它信息，也用于信息广播和更新。
-  > - fail：某个节点判断另一个节点 fail 之后，就发送 fail 给其它节点，通知其它节点说，某个节点宕机啦。
+    > gossip 协议包含多种消息，包含 `ping`,`pong`,`meet`,`fail` 等等。
+    >
+    > - meet：某个节点发送 meet 给新加入的节点，让新节点加入集群中，然后新节点就会开始与其它节点进行通信。
+    >
+    > ```
+    > redis-trib.rb add-node
+    > ```
+    >
+    > 其实内部就是发送了一个 gossip meet 消息给新加入的节点，通知那个节点去加入我们的集群。
+    >
+    > - ping：每个节点都会频繁给其它节点发送 ping，其中包含自己的状态还有自己维护的集群元数据，互相通过 ping 交换元数据。
+    > - pong：返回 ping 和 meeet，包含自己的状态和其它信息，也用于信息广播和更新。
+    > - fail：某个节点判断另一个节点 fail 之后，就发送 fail 给其它节点，通知其它节点说，某个节点宕机啦。
 
-  ###### ping 消息深入
+    ###### ping 消息深入
 
-  > ping 时要携带一些元数据，如果很频繁，可能会加重网络负担。
-  >
-  > 每个节点每秒会执行 10 次 ping，每次会选择 5 个最久没有通信的其它节点。当然如果发现某个节点通信延时达到了 `cluster_node_timeout / 2`，那么立即发送 ping，避免数据交换延时过长，落后的时间太长了。比如说，两个节点之间都 10 分钟没有交换数据了，那么整个集群处于严重的元数据不一致的情况，就会有问题。所以 `cluster_node_timeout` 可以调节，如果调得比较大，那么会降低 ping 的频率。
-  >
-  > 每次 ping，会带上自己节点的信息，还有就是带上 1/10 其它节点的信息，发送出去，进行交换。至少包含 `3` 个其它节点的信息，最多包含 `总节点数减 2` 个其它节点的信息。
+    > ping 时要携带一些元数据，如果很频繁，可能会加重网络负担。
+    >
+    > 每个节点每秒会执行 10 次 ping，每次会选择 5 个最久没有通信的其它节点。当然如果发现某个节点通信延时达到了 `cluster_node_timeout / 2`，那么立即发送 ping，避免数据交换延时过长，落后的时间太长了。比如说，两个节点之间都 10 分钟没有交换数据了，那么整个集群处于严重的元数据不一致的情况，就会有问题。所以 `cluster_node_timeout` 可以调节，如果调得比较大，那么会降低 ping 的频率。
+    >
+    > 每次 ping，会带上自己节点的信息，还有就是带上 1/10 其它节点的信息，发送出去，进行交换。至少包含 `3` 个其它节点的信息，最多包含 `总节点数减 2` 个其它节点的信息。
 
-  ###### 分布式寻址算法
+    ###### 分布式寻址算法
 
-  > - hash 算法（大量缓存重建）
-  > - 一致性 hash 算法（自动缓存迁移）+ 虚拟节点（自动负载均衡）
-  > - redis cluster 的 hash slot 算法
+    > - hash 算法（大量缓存重建）
+    > - 一致性 hash 算法（自动缓存迁移）+ 虚拟节点（自动负载均衡）
+    > - redis cluster 的 hash slot 算法
 
-  ###### hash 算法
+    ###### hash 算法
 
-  > 来了一个 key，首先计算 hash 值，然后对节点数取模。然后打在不同的 master 节点上。一旦某一个 master 节点宕机，所有请求过来，都会基于最新的剩余 master 节点数去取模，尝试去取数据。这会导致**大部分的请求过来，全部无法拿到有效的缓存**，导致大量的流量涌入数据库。
+    > 来了一个 key，首先计算 hash 值，然后对节点数取模。然后打在不同的 master 节点上。一旦某一个 master 节点宕机，所有请求过来，都会基于最新的剩余 master 节点数去取模，尝试去取数据。这会导致**大部分的请求过来，全部无法拿到有效的缓存**，导致大量的流量涌入数据库。
 
-  ###### 一致性 hash 算法
+    ###### 一致性 hash 算法
 
-  > 致性 hash 算法将整个 hash 值空间组织成一个虚拟的圆环，整个空间按顺时针方向组织，下一步将各个 master 节点（使用服务器的 ip 或主机名）进行 hash。这样就能确定每个节点在其哈希环上的位置。
-  >
-  > 来了一个 key，首先计算 hash 值，并确定此数据在环上的位置，从此位置沿环**顺时针“行走”**，遇到的第一个 master 节点就是 key 所在位置。
-  >
-  > 在一致性哈希算法中，如果一个节点挂了，受影响的数据仅仅是此节点到环空间前一个节点（沿着逆时针方向行走遇到的第一个节点）之间的数据，其它不受影响。增加一个节点也同理。
-  >
-  > 然而，一致性哈希算法在节点太少时，容易因为节点分布不均匀而造成**缓存热点**的问题。为了解决这种热点问题，一致性 hash 算法引入了虚拟节点机制，即对每一个节点计算多个 hash，每个计算结果位置都放置一个虚拟节点。这样就实现了数据的均匀分布，负载均衡。
+    > 致性 hash 算法将整个 hash 值空间组织成一个虚拟的圆环，整个空间按顺时针方向组织，下一步将各个 master 节点（使用服务器的 ip 或主机名）进行 hash。这样就能确定每个节点在其哈希环上的位置。
+    >
+    > 来了一个 key，首先计算 hash 值，并确定此数据在环上的位置，从此位置沿环**顺时针“行走”**，遇到的第一个 master 节点就是 key 所在位置。
+    >
+    > 在一致性哈希算法中，如果一个节点挂了，受影响的数据仅仅是此节点到环空间前一个节点（沿着逆时针方向行走遇到的第一个节点）之间的数据，其它不受影响。增加一个节点也同理。
+    >
+    > 然而，一致性哈希算法在节点太少时，容易因为节点分布不均匀而造成**缓存热点**的问题。为了解决这种热点问题，一致性 hash 算法引入了虚拟节点机制，即对每一个节点计算多个 hash，每个计算结果位置都放置一个虚拟节点。这样就实现了数据的均匀分布，负载均衡。
 
-  ###### redis cluster 的 hash slot 算法
+    ###### redis cluster 的 hash slot 算法
 
-  > redis cluster 有固定的 **16384** 个 hash slot，对每个 `key` 计算 **CRC16** 值，然后对 `16384` 取模，可以获取 key 对应的 hash slot。
-  >
-  > redis cluster 中每个 master 都会持有部分 slot，比如有 3 个 master，那么可能每个 master 持有 5000 多个 hash slot。hash slot 让 node 的增加和移除很简单，增加一个 master，就将其他 master 的 hash slot 移动部分过去，减少一个 master，就将它的 hash slot 移动到其他 master 上去。移动 hash slot 的成本是非常低的。客户端的 api，可以对指定的数据，让他们走同一个 hash slot，通过 `hash tag` 来实现。
-  >
-  > 任何一台机器宕机，另外两个节点，不影响的。因为 key 找的是 hash slot，不是机器。
+    > redis cluster 有固定的 **16384** 个 hash slot，对每个 `key` 计算 **CRC16** 值，然后对 `16384` 取模，可以获取 key 对应的 hash slot。
+    >
+    > redis cluster 中每个 master 都会持有部分 slot，比如有 3 个 master，那么可能每个 master 持有 5000 多个 hash slot。hash slot 让 node 的增加和移除很简单，增加一个 master，就将其他 master 的 hash slot 移动部分过去，减少一个 master，就将它的 hash slot 移动到其他 master 上去。移动 hash slot 的成本是非常低的。客户端的 api，可以对指定的数据，让他们走同一个 hash slot，通过 `hash tag` 来实现。
+    >
+    > 任何一台机器宕机，另外两个节点，不影响的。因为 key 找的是 hash slot，不是机器。
 
-  ###### redis cluster 的高可用与主备切换原理
+    ###### redis cluster 的高可用与主备切换原理
 
-  > redis cluster 的高可用的原理，几乎跟哨兵是类似的。
+    > redis cluster 的高可用的原理，几乎跟哨兵是类似的。
 
-  ###### 判断节点宕机
+    ###### 判断节点宕机
 
-  > 如果一个节点认为另外一个节点宕机，那么就是 `pfail`，**主观宕机**。如果多个节点都认为另外一个节点宕机了，那么就是 `fail`，**客观宕机**，跟哨兵的原理几乎一样，sdown，odown。
-  >
-  > 在 `cluster-node-timeout` 内，某个节点一直没有返回 `pong`，那么就被认为 `pfail`。
-  >
-  > 如果一个节点认为某个节点 `pfail` 了，那么会在 `gossip ping` 消息中，`ping` 给其他节点，如果**超过半数**的节点都认为 `pfail` 了，那么就会变成 `fail`。
+    > 如果一个节点认为另外一个节点宕机，那么就是 `pfail`，**主观宕机**。如果多个节点都认为另外一个节点宕机了，那么就是 `fail`，**客观宕机**，跟哨兵的原理几乎一样，sdown，odown。
+    >
+    > 在 `cluster-node-timeout` 内，某个节点一直没有返回 `pong`，那么就被认为 `pfail`。
+    >
+    > 如果一个节点认为某个节点 `pfail` 了，那么会在 `gossip ping` 消息中，`ping` 给其他节点，如果**超过半数**的节点都认为 `pfail` 了，那么就会变成 `fail`。
 
-  ###### 从节点过滤
+    ###### 从节点过滤
 
-  > 对宕机的 master node，从其所有的 slave node 中，选择一个切换成 master node。
-  >
-  > 检查每个 slave node 与 master node 断开连接的时间，如果超过了 `cluster-node-timeout * cluster-slave-validity-factor`，那么就**没有资格**切换成 `master`。
+    > 对宕机的 master node，从其所有的 slave node 中，选择一个切换成 master node。
+    >
+    > 检查每个 slave node 与 master node 断开连接的时间，如果超过了 `cluster-node-timeout * cluster-slave-validity-factor`，那么就**没有资格**切换成 `master`。
 
-  ###### 从节点选举
+    ###### 从节点选举
 
-  > 每个从节点，都根据自己对 master 复制数据的 offset，来设置一个选举时间，offset 越大（复制数据越多）的从节点，选举时间越靠前，优先进行选举。
-  >
-  > 所有的 master node 开始 slave 选举投票，给要进行选举的 slave 进行投票，如果大部分 master node`（N/2 + 1）`都投票给了某个从节点，那么选举通过，那个从节点可以切换成 master。
-  >
-  > 从节点执行主备切换，从节点切换为主节点。
+    > 每个从节点，都根据自己对 master 复制数据的 offset，来设置一个选举时间，offset 越大（复制数据越多）的从节点，选举时间越靠前，优先进行选举。
+    >
+    > 所有的 master node 开始 slave 选举投票，给要进行选举的 slave 进行投票，如果大部分 master node`（N/2 + 1）`都投票给了某个从节点，那么选举通过，那个从节点可以切换成 master。
+    >
+    > 从节点执行主备切换，从节点切换为主节点。
 
-  ###### 与哨兵比较
+    ###### 与哨兵比较
 
-  > 整个流程跟哨兵相比，非常类似，所以说，redis cluster 功能强大，直接集成了 replication 和 sentinel 的功能。
-
-- [ ] 
+    > 整个流程跟哨兵相比，非常类似，所以说，redis cluster 功能强大，直接集成了 replication 和 sentinel 的功能。
 
 
 
@@ -1056,21 +1061,95 @@
 
 ##### 1.索引
 
-- [ ] 如果Innodb没主键怎么办？
-- [ ] 对 a b c 建索引，找 b c 时会不会走索引？ 精准找 a 范围 b 精准 c 呢？
-- [ ] MySQL为什么是B + 树的结构，为什么不能是红⿊树呢？优化的是什么，优化的是磁盘IO，减少磁盘寻址。
-- [ ] innodb的B+树原理，如何做页分裂和页合并？查询时间复杂度？
-- [ ] 为什么选择B+树实现索引？一般深度为多少？b+树和红黑树的区别?(高频)
-- [ ] MySQL数据库底层实现结构？B+树结构，也讲了数据⻚，以及⻚⽬录相关的
-- [ ] 创建索引后，查询读取I/O的次数
-- [ ] 索引的分类
-- [ ] 聚簇索引和非聚簇索引区别？如何避免回表查询？
-- [ ] 聚簇索引和非聚簇索引的区别
-- [ ] 创建索引后，查询读取I/O的次数
+- [x] 如果Innodb没主键怎么办？
+
+  > 如果表中没有主键或者一个合适的的唯一索引，InnoDB内部会以一个包含行ID值的合成列生成一个隐藏的聚簇索引。表中的行是按照InnoDB分配的ID排序的。行ID是一个6字节的字段，随着一个新行的插入单调增加。因此，行ID顺序物理上是插入顺序
+
+- [x] 对 a b c 建索引，找 b c 时会不会走索引？ 精准找 a 范围 b 精准 c 呢？
+
+  > 1. 不会,根据最左匹配原则,不会命中abc联合索引。
+  > 2. 会,还是最左匹配原则,查找顺序是通过索引找到第一条符合a范围的记录,向后扫描,扫描的过程中,会用到索引下推,不满足范围b或不满足精准c的项会直接跳过,不会回表，在满足范围b并且满足精准c的项,会根据索引中的主键id,回表取这一行的全部数据
+
+- [x] MySQL为什么是B + 树的结构，为什么不能是红⿊树呢，b+树和红黑树的区别(高频)
+
+  > B+树与红黑树相比,在相同的的节点的情况下,B+树的高度远远小于红黑树的高度,Mysql的节点是按页存储的,页大小为16kb,假设主键ID为bigint,占8个byte,已知叶子节点是常驻内存的,那么4层的B+tree可容纳的数据大约为16亿条，而如果是红黑树,则树高为30层，优化的是磁盘IO，减少磁盘寻址次数。
+
+- [x] innodb的B+树原理？如何做页分裂和页合并？查询时间复杂度？
+
+  > 1. B+树为B树的扩展,在B树的基础上,非叶子节点依旧保存索引,将数据行存放在叶子节点,保证了查询性能的稳定,并且将叶子节点通过指针连接起来,对范围查询更加友好。
+  >
+  > 2. 为了保证分裂时并发数据的一致性,在进行分裂前会对索引内存对象加x-latch，同时对分裂的页加x-latch,因此分裂时所有其他操作都需要等待分裂完成。
+  >
+  >    > 分裂操作步骤： 
+  >
+  >    1. 确定分裂点记录
+  >    2. 从索引的数据段分配一个新页，对这个页加x-latch
+  >    3. 确定需要移动页中开始的第一个记录first+rec以及移动到的记录move_limit_
+  >    4. 更新上层节点记录
+  >    5. 将记录移动到新页中
+  >    6. 将待插入的记录插入到页中
+  >    7. 若上述插入操作失败,对页进行重新组织,然后重新进行插入操作
+  >    8. 若上述操作失败,回到步骤1再次进行分裂操作
+  >
+  > 3. 页合并 
+  >
+  >    1. TODO
+  >
+  > 4. 分情况,命中索引和未命中索引
+  >
+  >    1. 命中索引
+  >       1. 命中主键索引 = log(N)-1次磁盘IO (B+Tree查找) 
+  >       2. 命中普通索引 = 2 (log(N)-1)次磁盘IO (B+Tree查找) + 回表
+  >    2. 未命中索引
+  >       1. 全表扫描,由于叶子节点数据不在内存里,会频繁IO换入页
+  >          
+  >          
+
+- [x] 为什么选择B+树实现索引？一般深度为多少？
+
+  > 因为B+Tree的树更加扁平,层高更加低矮,能尽量减少查找次数(磁盘IO)
+  > 一般深度为4,当深度为4时,主键索引使用bigint,可以大约存放17亿条数据
+  >  B+树的数据⻚，以及⻚⽬录相关	
+
+- [x] MySQL数据库底层实现结构？B+树结构，也讲了数据⻚，以及⻚⽬录相关的
+
+  ![img](https://raw.githubusercontent.com/ShadowStorm97/cloudimg/main/watermark%252Ctype_ZmFuZ3poZW5naGVpdGk%252Cshadow_10%252Ctext_aHR0cHM6Ly90aWFueWFsZWkuYmxvZy5jc2RuLm5ldA%253D%253D%252Csize_16%252Ccolor_FFFFFF%252Ct_70-20210310231148001.png)
+
+  > 页，最小的存储单位。常见的页类型有数据页、undo页、系统页、事务数据页、插入缓冲位图页、插入缓冲空闲列表页、未压缩的二进制大对象页、压缩的二进制大对象页，大小为16kb。
+  >
+  > 数据页的最左边位置会有一个Min记录，该记录由2部分组成，第一部分就是一个Min标记，代表这就是最小值；第二部分是一个pageNo指针，指向**下一层**中最左边的记录。
+  >
+  > 每一个page还会有一个最大记录和最小记录，用来标记该page的边界，便于查询。
+  > 做一次查询的耗时，每一层只需要一次内存级的二分查找，定位后就进入下一层，再一次二分查找。	
+
+- [x] 索引的分类
+
+  > 1. 聚簇索引
+  > 2. 非聚簇索引
+  > 3. 联合索引
+  > 4. 唯一索引
+  > 5. 前缀索引
+  > 6. 全文索引
+  > 7. hash索引
+
+- [x] 聚簇索引和非聚簇索引区别？如何避免回表查询？
+
+  > 1. 聚簇索的叶子节点会存储数据行,而非聚簇索引也称为二级索引,叶子节点存储的是主键索引的值。
+  > 2. 避免回表的方法:
+  >    1. 使用索引下推,通过建立联合索引,在查询时,增加判断条件,如果索引刚好在判断条件里,不符合的节点会直接跳过
+  >    2. 使用索引覆盖,通过建立联合索引,将返回的数据都包含在二级索引中了,不需要回表
+  >    3. 尽量使用聚簇索引查询,直接打到叶子节点拿数据
+
 - [ ] 索引的最左前缀原则
+
+  
+
 - [ ] mysql数据的索引优化以及失效
+
 - [ ] 联合索引怎么存储？
+
 - [ ] 覆盖索引相关问题
+
 - [ ] 假设有⼀个表字段⼏⼗个，索引如何创建的？所有字段都能建吗？区分度、选择性、列基数
 
 ##### 2.锁
@@ -1104,10 +1183,7 @@
 ##### 6.SQL
 
 - [ ] 从学生表中查询每个班的分数的前3名
-- [ ] 写一条sql统计， 统计当天访问量前10的ip ip visit_time url 102.12.12.1 2020-03-25 10:10:10 
-
-
-
+- [ ] 写一条sql统计， 统计当天访问量前10的ip ip visit_time url 102.12.12.1 2020-03-25 10:10:10 xxxxxxxxxx #### MySQL##### 1.索引- [ ] 如果Innodb没主键怎么办？- [ ] 对 a b c 建索引，找 b c 时会不会走索引？ 精准找 a 范围 b 精准 c 呢？- [ ] MySQL为什么是B + 树的结构，为什么不能是红⿊树呢？优化的是什么，优化的是磁盘IO，减少磁盘寻址。- [ ] innodb的B+树原理，如何做页分裂和页合并？查询时间复杂度？- [ ] 为什么选择B+树实现索引？一般深度为多少？b+树和红黑树的区别?(高频)- [ ] MySQL数据库底层实现结构？B+树结构，也讲了数据⻚，以及⻚⽬录相关的- [ ] 创建索引后，查询读取I/O的次数- [ ] 索引的分类- [ ] 聚簇索引和非聚簇索引区别？如何避免回表查询？- [ ] 聚簇索引和非聚簇索引的区别- [ ] 创建索引后，查询读取I/O的次数- [ ] 索引的最左前缀原则- [ ] mysql数据的索引优化以及失效- [ ] 联合索引怎么存储？- [ ] 覆盖索引相关问题- [ ] 假设有⼀个表字段⼏⼗个，索引如何创建的？所有字段都能建吗？区分度、选择性、列基数##### 2.锁- [ ] 数据库中的乐观锁悲观锁- [ ] 排他锁(x锁)- [ ] 什么是死锁，如何避免- [ ] mysql的隔离级别？处理什么问题的（脏读、幻读、不可重复读）(高频)- [ ] 间隙锁坏处，如何避免- [ ] 说说这些间隙锁的底层实现 ( 我真的学不动了 )##### 3.日志- [ ] undo log- [ ] redo log- [ ] binlog##### 4.架构- [ ] mysql的主从复制过程？- [ ] mysql的大表优化方式##### 5.事务- [ ] 数据库的ACID原理和各个隔离级别，实现原理？- [ ] Innodb 默认是哪个隔离级别- [ ] 说说 innodb 如何避免各种读的- [ ] 说说 mvcc 的底层实现##### 6.SQL- [ ] 从学生表中查询每个班的分数的前3名- [ ] 写一条sql统计， 统计当天访问量前10的ip ip visit_time url 102.12.12.1 2020-03-25 10:10:10
 #### MQ
 
 ##### 1.设计相关
@@ -1157,6 +1233,10 @@
 
 - [ ] session cookie区别，分别存哪里？跨域问题如何解决
 
+
+
+
+
 #### System
 
 - [ ] 进程、线程和协程的区别？ 
@@ -1188,8 +1268,10 @@
 
 - [ ] goroutine(协程)和线程是什么关系，goroutine是如何调度的？
 
+  
+
   1. goroutine 和thead 之间的区别
-   1. 概念上：
+     1. 概念上：
         1. Goroutines 在同一个用户地址空间里并行独立执行 functions
         2. thread 则是操作系统能够进行运算调度的最小单位
      2. 内存上:
@@ -1215,7 +1297,7 @@
                   扩展问题， 可能会涉及到 操作系统中的 什么是用户态和内核态，还有就是系统调度？ 
                   用户态：只能受限的访问内存，且不允许访问外围设备，占用cpu的能力被剥夺，cpu资源可以被其他程序获取。
                   内核态：cpu可以访问内存的所有数据，包括外围设备，例如硬盘，网卡，cpu也可以将自己从一个程序切换到另一个程序。参考链接 https://www.cnblogs.com/gtblog/p/12155109.html https://www.zhihu.com/question/308641794
-  
+
 - [ ] go gmp 调度模型实现。从早期1.x版本演进到1.14，做了哪些大改变? time.sleep阻塞时,网络请求阻塞时,调用系统方法时,GMP怎么流转的？
 
 - [ ] 谁负责来标记抢占? 有如下代码 go func(){ for{}}() 死循环，能否被抢占?1.14版本前会有什么问题？
@@ -1244,18 +1326,18 @@
 - [ ] chan 底层实现 、 make(chan struct {}) 和 make(chan bool) 在chan的源码实现上有什么区别，chan，什么时候会panic
 
   1.  循环队列+mutex（注意下 no buffer 的在读取时的优化，其他大概回答下 ）；make(chan, 1) 和make(chan) 的区别 。 顺便可以说下channel 的优雅关闭 
-     注意点：在有等待的receiver 时，发送方会越过channel buffer 直接将数据copy 到receiver 。
-     源码解析 参考 https://github.com/cch123/golang-notes/blob/master/channel.md
-  2. 第二个问题: 大概是问struct{} 在go内部做了优化，不占用内存；其他类型(int, bool, ptr)都需要64位(bool 待定)。可以不具体回答字节数
-  3. chan，什么时候会panic
-     write to close(chan)
+      注意点：在有等待的receiver 时，发送方会越过channel buffer 直接将数据copy 到receiver 。
+      源码解析 参考 https://github.com/cch123/golang-notes/blob/master/channel.md
+  2.  第二个问题: 大概是问struct{} 在go内部做了优化，不占用内存；其他类型(int, bool, ptr)都需要64位(bool 待定)。可以不具体回答字节数
+  3.  chan，什么时候会panic
+      write to close(chan)
 
 - [ ] 有缓冲channel和无缓冲channel区别？
 
 - [ ] map 底层实现&sync.Map的区别
 
-   	1. 原理参考：https://tonybai.com/2020/11/10/understand-sync-map-inside-through-examples/
-   	源码解析: https://github.com/cch123/golang-notes/blob/master/sync.md
+      1. 原理参考：https://tonybai.com/2020/11/10/understand-sync-map-inside-through-examples/
+      源码解析: https://github.com/cch123/golang-notes/blob/master/sync.md
 
 - [ ] golang 的map 插入顺序和输出顺序是一样的吗？
 
@@ -1267,8 +1349,8 @@
 
 - [ ] go内存泄漏
 
-   	1. 内存泄漏场景： https://gfw.go101.org/article/memory-leaking.html 
-   	有兴趣可以看下这个： https://xargin.com/logic-of-slice-memory-leak/
+      1. 内存泄漏场景： https://gfw.go101.org/article/memory-leaking.html 
+      有兴趣可以看下这个： https://xargin.com/logic-of-slice-memory-leak/
 
 - [ ] 内存对齐，说说为什么要内存对齐，原理原因
 
@@ -1276,12 +1358,12 @@
 
 - [ ] go gc的实现与触发机制
 
-   	1. 实现： https://github.com/yifhao/share/blob/master/gopher%20meetup-%E6%B7%B1%E5%85%A5%E6%B5%85%E5%87%BAGolang%20Runtime-yifhao-%E5%AE%8C%E6%95%B4%E7%89%88.pdf
-   	2. 触发：
-   	 	1. 主动触发 通过调用 runtime.GC 来触发 GC，此调用阻塞式地等待当前 GC 运行完毕；
-   	 	2. 被动触发，分为两种方式：
-   	     使用系统监控，当超过两分钟没有产生任何 GC 时，强制触发 GC。
-   	     使用步调（Pacing）算法，其核心思想是控制内存增长的比例。
+      1. 实现： https://github.com/yifhao/share/blob/master/gopher%20meetup-%E6%B7%B1%E5%85%A5%E6%B5%85%E5%87%BAGolang%20Runtime-yifhao-%E5%AE%8C%E6%95%B4%E7%89%88.pdf
+      2. 触发：
+          1. 主动触发 通过调用 runtime.GC 来触发 GC，此调用阻塞式地等待当前 GC 运行完毕；
+          2. 被动触发，分为两种方式：
+           使用系统监控，当超过两分钟没有产生任何 GC 时，强制触发 GC。
+           使用步调（Pacing）算法，其核心思想是控制内存增长的比例。
 
 - [ ] interface 底层实现，怎么判空？
 
@@ -1290,7 +1372,7 @@
   1. 底层实现
 
      1. 接口有两种底层结构,分别是：`iface` 和 `eface` ，区别在于 `iface` 描述的接口包含方法，而 `eface` 则是不包含任何方法的空接口：`interface{}`。
-     2.  `iface` 内部维护两个指针，`tab` 指向一个 `itab` 实体， 它表示接口的类型以及赋给这个接口的实体类型。`data` 则指向接口具体的值，一般而言是一个指向堆内存的指针。`_type` 字段描述了实体的类型，包括内存对齐方式，大小等；`inter` 字段则描述了接口的类型。`fun` 字段放置和接口方法对应的具体数据类型的方法地址，实现接口调用方法的动态分派，一般在每次给接口赋值发生转换时会更新此表，或者直接拿缓存的 itab
+     2. `iface` 内部维护两个指针，`tab` 指向一个 `itab` 实体， 它表示接口的类型以及赋给这个接口的实体类型。`data` 则指向接口具体的值，一般而言是一个指向堆内存的指针。`_type` 字段描述了实体的类型，包括内存对齐方式，大小等；`inter` 字段则描述了接口的类型。`fun` 字段放置和接口方法对应的具体数据类型的方法地址，实现接口调用方法的动态分派，一般在每次给接口赋值发生转换时会更新此表，或者直接拿缓存的 itab
      3. ![](https://raw.githubusercontent.com/ShadowStorm97/cloudimg/main/image-20210306153606436.png)
      4. ![](https://raw.githubusercontent.com/ShadowStorm97/cloudimg/main/image-20210306153634432.png)
      5. `interfacetype` 类型，它描述的是接口的类型，它包装了 `_type` 类型，`_type` 实际上是描述 Go 语言中各种数据类型的结构体。我们注意到，这里还包含一个 `mhdr` 字段，表示接口所定义的函数列表， `pkgpath` 记录定义了接口的包名
@@ -1359,7 +1441,222 @@
   2. new只有一个type参数，type可以是任意类型数据; make可以有多个参数，但是只能是slice，map，或者chan
   3. new返回的指针指向的地址值为类型的0值;make返回的是非零值的实例
 
-- [ ] reflect 的使用
+- [x] reflect 的使用
+
+     #### 含义
+
+     > reflect 是指在运行时动态的调整对象的方法和属性
+
+     #### 原理
+
+     ##### 1、在go 语言中，关于类型设计的一些原则
+
+     > 1.变量包括(type, value)两部分，理解这一点就知道为什么 nil != nil。
+     >
+     > 2.type 包括 static type 和concrete type. 简单的说 static type 是在编码时可以看见的类型(int、string)，
+     >
+     > concrete type 是runtime 系统看见的类型。
+     >
+     > 3.类型断言是否能成功，取决于变量的concrete type。比如一个 reader变量如果它的concrete type也实现了write方法的话，
+     >
+     > 它也可以被类型断言为writer.
+
+     ##### 2、reflect的基本功能TypeOf和ValueOf
+
+     ###### 1、TypeOf
+
+     ```go
+     // TypeOf returns the reflection Type that represents the dynamic type of i.
+     // If i is a nil interface value, TypeOf returns nil.
+     func TypeOf(i interface{}) Type {
+           eface := *(*emptyInterface)(unsafe.Pointer(&i))
+           return toType(eface.typ) 
+     
+      }     
+     ```
+
+      对于reflect.TypeOf， 传参是一个空接口类型, 返回值是一个reflet.Type 非空接口类型
+
+     ```go
+     type Type interface { 
+         //对齐边界
+         Align() int         
+         // 如果是 struct 的字段，对齐后占用的字节数
+         FieldAlign() int    
+         // 方法
+         Method(int) Method
+         //  通过名称获取方法
+         MethodByName(string) (Method, bool)  
+         // 获取类型方法集里导出的方法个数
+         NumMethod() int   
+         // 类型名称
+         Name() string
+         // 返回类型所在包的路径
+         PkgPath() string
+         // 返回类型的大小，和 unsafe.Sizeof 功能类似
+         Size() uintptr
+         // 返回类型的字符串表示形式
+         String() string
+         // 返回类型的类型值
+         Kind() Kind
+         // 类型是否实现了接口 u
+         Implements(u Type) bool
+         // 是否可以赋值给 u
+         AssignableTo(u Type) bool
+         // 是否可以类型转换成 u
+         ConvertibleTo(u Type) bool
+         // 类型是否可以比较
+         Comparable() bool
+        // many others......
+     }
+     ```
+
+     以下面代码为例，说明下reflect.TypeOf 原理：
+
+     ```go
+     type Eggo struct{
+         Name string
+     }
+     
+     func(e *Eggo)A(){
+         println("A")
+     }
+     func(e *Eggo)B(){
+         println("B")
+     }
+     
+     func main(){
+         a := Eggo{Name:"eggo"}
+         t := reflect.TypeOf(a)
+         
+         println(t.Name(), t.NumMethod())
+     }
+     ```
+
+     1、从函数调用栈来看， 下图所示 main 函数栈帧中有两个局部变量: Eggo 类型的a， reflect.Type 类型的t ，临时变量， 返回值，参数空间；
+
+     > **临时空间**      
+     >
+     >    前文提到 go 语言中传参都是值拷贝， 参数空间中的值应该是a的值拷贝，由于参数空间是空接口类型，需要一个地址，但是go 语言中传参都是值拷贝，所以不论 `reflect.Typeof`  对a 做什么样的修改都不能作用到 原变量a的身上， 如果直接拷贝a的地址，则不符合go 语言的值拷贝语义， 所以不能直接将a的地址copy到参数空间中。为了解决这个问题，go 在编译期间增加了一个临时变量作为a的拷贝，这样就可以在参数空间使用这个临时变量的地址。通过传递拷贝后变量的地址， 来实现传值的语义。
+
+  ![image-20210310071241188](https://raw.githubusercontent.com/ShadowStorm97/cloudimg/main/image-20210310071241188.png)
+
+     2、查看 `func TypeOf`  源码不难发现
+
+     ```go
+     func TypeOf(i interface{}) Type {
+           eface := *(*emptyInterface)(unsafe.Pointer(&i))
+           return toType(eface.typ) 
+     }
+     type emptyInterface struct {                                                                                                 
+           typ  *rtype
+           word unsafe.Pointer
+     }
+     // nonEmptyInterface is the header for an interface value with methods.
+     type nonEmptyInterface struct {
+         // see ../runtime/iface.go:/Itab
+         itab *struct {
+             ityp *rtype // static interface type
+             typ  *rtype // dynamic concrete type
+             hash uint32 // copy of typ.hash
+             _    [4]byte        
+             fun  [100000]unsafe.Pointer // method table
+         } 
+         word unsafe.Pointer     
+     }     
+     
+     ```
+
+     `reflec.TypeOf` 函数之后会将runtime.eface 类型的参数， 转换成`reflect.emptyInterface`类型(在源码中，两者的结构是一样的)，并给赋值给eface，在源码中由于*rtype 类型实现了Type接口。最终转换成如下图所显示：
+
+     ![image-20210310071315360](https://raw.githubusercontent.com/ShadowStorm97/cloudimg/main/image-20210310071315360.png)
+
+     > ret  为非空接口格式 `iface`，`itab` 这里接口类型`inter`自然是`reflect.Type`, 动态类型`_type`是*rtype, `fun` 对应的类型方法对应的就是`eface.typ` 实现的相关方法。
+     >
+     > ```go
+     > // interface 相关的代码
+     > //eface 空接口类型
+     > type eface struct {      //空接口
+     >  _type *_type         //类型信息
+     >  data  unsafe.Pointer //指向数据的指针(go语言中特殊的指针类型unsafe.Pointer类似于c语言中的void*)
+     > }
+     > 
+     > // iface 表示 non-empty interface 的数据结构
+     > type iface struct {
+     > tab  *itab
+     > data unsafe.Pointer
+     > }
+     > type itab struct {
+     > inter  *interfacetype   // 接口自身的元信息
+     > _type  *_type           // 具体类型的元信息
+     > link   *itab
+     > bad    int32
+     > hash   int32            // _type里也有一个同样的hash，此处多放一个是为了方便运行接口断言
+     > fun    [1]uintptr       // 函数指针，指向具体类型所实现的方法
+     > }
+     > ```
+
+     3、回到列子中，`reflect.TypeOf(a)`返回值 一个`reflect.Type` 和`*rtype` 组合 对应的`itab` 指针和一个`Eggo` 类型元数据地址。所以通过`reflect.TypeOf` 拿到的就是`a` 中非空接口变量t。比如`t.Name()`, `t.NumMethod()` 调用的这些方法就回去`Eggotype` 指向的`Eggo`类型元数据查找相关信息。
+
+     ###### ValueOf
+
+  ```go
+  func ValueOf(i interface{}) Value {
+      if i == nil {         
+          return Value{}    
+      }                     
+      // TODO: Maybe allow contents of a Value to live on the stack.
+      // For now we make the contents always escape to the heap. It
+      // makes life easier in a few places (see chanrecv/mapassign
+      // comment below).    
+      escapes(i)            
+  
+      return unpackEface(i) 
+  }
+  ```
+
+  1、`escapes(i)` 表示`reflect.ValueOf` 函数会显示的将参数指向的变量逃逸到堆上；
+
+  2、以下面代码为例
+
+  ```go
+  func main(){
+      a := "eggo"
+      v := reflect.ValueOf(a)
+      v.SetString("new eggo")  // panic: reflect.Value.SetString using unaddressable value
+      println(a)
+  }
+  ```
+
+  上述想修改变量a 中的值为“new eggo”， 画出main 的栈帧如下图所示：
+
+  ![image-20210310071402581](https://raw.githubusercontent.com/ShadowStorm97/cloudimg/main/image-20210310071402581.png)
+
+  > 1. 函数栈中：一个局部变量a 和局部类型v， 编译阶段会增加一个临时变量作为a 的拷贝，`ValueOf` 返回值空间，以及参数空间。
+  > 2. 参数这里`data`指向a的拷贝， `_type` 指向string类型元数据； `ValueOf` 返回值，这里`typ` 等于参数的的一个字段， `ptr` 等于参数的第二个字段， 处理flag 标记；
+  > 3. 接下来通过v 调用SetString 时，因为ptr 指向a 的拷贝而不是a，而修改这样一个用户都不知道的临时变量，没有任何意义。会出现panic()。
+
+  3、为了能够修改变量a 中值 这里需要反射a的指针
+
+  ```go
+  func main(){
+      a := "eggo"
+      v := reflect.ValueOf(a)
+      v = v.Elem()
+      v.SetString("new eggo")  // panic: reflect.Value.SetString using unaddressable value
+      println(a)
+  }
+  ```
+
+   这样`valueof` 函数参数指向的变量就是a。
+
+  ![image-20210310071420318](https://raw.githubusercontent.com/ShadowStorm97/cloudimg/main/image-20210310071420318.png)
+
+  > 1.上图 在main 函数栈帧中，局部变量a就逃逸到堆上，栈上只留一个地址， 然后是局部变量v， 返回值和参数;
+  >
+  > 2.参数这里`_type` 指向`*string` 类型元数据，data 指向a，valueof 返回值赋值给局部变量v；
+  >
+  > 3.调用v 点`Elem()` 方法， 会拿到`v.ptr` 指向的变量a，并包装成`reflect.Value` 类型的返回值，返回值中类型是`string`， 地址是指向堆上的a，然后这个返回值会被赋给V
 
   
 
@@ -1374,7 +1671,7 @@
 
 - [ ] Context 的使用，用法，有无父子关系？怎么去做并发控制？底层实现（高频）
 
-  ​	
+  ​    
 
 - [ ] context 的使用，context是否并发安全？
 
